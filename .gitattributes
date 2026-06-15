@@ -1,0 +1,6 @@
+# Zeilenenden konsistent halten, egal auf welchem OS geklont wird.
+* text=auto eol=lf
+*.sh   text eol=lf
+*.bat  text eol=crlf
+*.png  binary
+*.docx binary
