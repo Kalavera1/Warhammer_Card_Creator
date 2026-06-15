@@ -1,0 +1,19 @@
+# Generierte Ausgabe
+output/
+
+# Python
+__pycache__/
+*.pyc
+
+# Windows-Downloadmarker
+*:Zone.Identifier
+*.Zone.Identifier
+
+# Persoenliche Armeelisten standardmaessig NICHT veroeffentlichen.
+# (Ordner bleibt via .gitkeep erhalten. Beispiel-Listen bei Bedarf gezielt
+#  mit 'git add -f lists/<datei>.json' hinzufuegen.)
+lists/*.json
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,617 @@
+{
+  "_comment": "Phasen-Zuordnung fuer den Ablaufplan. Vom Tool genutzt und automatisch um 'learned' erweitert. Frei editierbar: 'rules' = Stichwort im Regelnamen -> [Phase, Unterphase] ('Passiv' = immer-aktiv). 'learned' = vom Tool per Text-Heuristik geraten; bei Bedarf korrigieren/nach 'rules' verschieben.",
+  "sequence": [
+    [
+      "Setup",
+      [
+        "Aufstellung"
+      ]
+    ],
+    [
+      "Strategy",
+      [
+        "Start of Turn",
+        "Command",
+        "Rally Fleeing Troops"
+      ]
+    ],
+    [
+      "Movement",
+      [
+        "Declare Charges",
+        "Magic: Conveyance",
+        "Charge Moves",
+        "Compulsory Moves",
+        "Remaining Moves"
+      ]
+    ],
+    [
+      "Shooting",
+      [
+        "Choose Target",
+        "Magic: Missiles & Vortex",
+        "Roll to Hit",
+        "Roll to Wound",
+        "Remove Casualties"
+      ]
+    ],
+    [
+      "Combat",
+      [
+        "Choose & Fight",
+        "Magic: Assailment",
+        "Combat Result",
+        "Break Test",
+        "Follow Up & Pursuit"
+      ]
+    ]
+  ],
+  "spell_types": {
+    "hex": [
+      "Strategy",
+      "Command"
+    ],
+    "enchantment": [
+      "Strategy",
+      "Command"
+    ],
+    "conjuration": [
+      "Strategy",
+      "Command"
+    ],
+    "conveyance": [
+      "Movement",
+      "Magic: Conveyance"
+    ],
+    "magic missile": [
+      "Shooting",
+      "Magic: Missiles & Vortex"
+    ],
+    "magical vortex": [
+      "Shooting",
+      "Magic: Missiles & Vortex"
+    ],
+    "magic vortex": [
+      "Shooting",
+      "Magic: Missiles & Vortex"
+    ],
+    "assailment": [
+      "Combat",
+      "Magic: Assailment"
+    ]
+  },
+  "rules": {
+    "scout": [
+      "Setup",
+      "Aufstellung"
+    ],
+    "vanguard": [
+      "Setup",
+      "Aufstellung"
+    ],
+    "ambush": [
+      "Setup",
+      "Aufstellung"
+    ],
+    "first to the fray": [
+      "Setup",
+      "Aufstellung"
+    ],
+    "rallying cry": [
+      "Strategy",
+      "Rally Fleeing Troops"
+    ],
+    "inspiring presence": [
+      "Strategy",
+      "Command"
+    ],
+    "general": [
+      "Strategy",
+      "Command"
+    ],
+    "battle standard": [
+      "Strategy",
+      "Command"
+    ],
+    "my will be done": [
+      "Strategy",
+      "Command"
+    ],
+    "loremaster": [
+      "Strategy",
+      "Command"
+    ],
+    "stand & shoot": [
+      "Movement",
+      "Declare Charges"
+    ],
+    "stand and shoot": [
+      "Movement",
+      "Declare Charges"
+    ],
+    "fly": [
+      "Movement",
+      "Charge Moves"
+    ],
+    "swiftstride": [
+      "Movement",
+      "Charge Moves"
+    ],
+    "swift stride": [
+      "Movement",
+      "Charge Moves"
+    ],
+    "fast cavalry": [
+      "Movement",
+      "Remaining Moves"
+    ],
+    "skirmish": [
+      "Movement",
+      "Remaining Moves"
+    ],
+    "drilled": [
+      "Movement",
+      "Remaining Moves"
+    ],
+    "move through cover": [
+      "Movement",
+      "Remaining Moves"
+    ],
+    "random movement": [
+      "Movement",
+      "Compulsory Moves"
+    ],
+    "stupidity": [
+      "Movement",
+      "Compulsory Moves"
+    ],
+    "frenzy": [
+      "Movement",
+      "Declare Charges"
+    ],
+    "volley fire": [
+      "Shooting",
+      "Choose Target"
+    ],
+    "quick shot": [
+      "Shooting",
+      "Roll to Hit"
+    ],
+    "rapid fire": [
+      "Shooting",
+      "Roll to Hit"
+    ],
+    "multiple shots": [
+      "Shooting",
+      "Roll to Hit"
+    ],
+    "move or fire": [
+      "Shooting",
+      "Choose Target"
+    ],
+    "devastating charge": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "impact hit": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "stomp": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "thunderstomp": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "killing blow": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "heroic killing blow": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "armour bane": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "armor bane": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "armour piercing": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "multiple wounds": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "strike first": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "always strikes first": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "strike last": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "always strikes last": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "requires two hands": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "hatred": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "poison": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "parry": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "lance": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "monster slayer": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "soul reaper": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "cleaving blow": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "fight in extra rank": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "martial prowess": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "war banner": [
+      "Combat",
+      "Combat Result"
+    ],
+    "terror": [
+      "Combat",
+      "Break Test"
+    ],
+    "fear": [
+      "Combat",
+      "Break Test"
+    ],
+    "stubborn": [
+      "Combat",
+      "Break Test"
+    ],
+    "unbreakable": [
+      "Combat",
+      "Break Test"
+    ],
+    "steadfast": [
+      "Combat",
+      "Break Test"
+    ],
+    "stoic": [
+      "Combat",
+      "Break Test"
+    ],
+    "immune to psychology": [
+      "Combat",
+      "Break Test"
+    ],
+    "bodyguard": [
+      "Combat",
+      "Break Test"
+    ],
+    "resolute": [
+      "Combat",
+      "Follow Up & Pursuit"
+    ],
+    "regeneration": [
+      "Passiv",
+      ""
+    ],
+    "ward save": [
+      "Passiv",
+      ""
+    ],
+    "scaly skin": [
+      "Passiv",
+      ""
+    ],
+    "magic resistance": [
+      "Passiv",
+      ""
+    ],
+    "large target": [
+      "Passiv",
+      ""
+    ],
+    "close order": [
+      "Passiv",
+      ""
+    ],
+    "open order": [
+      "Passiv",
+      ""
+    ],
+    "gromril armour": [
+      "Passiv",
+      ""
+    ]
+  },
+  "passive_text_signals": [
+    "armour save",
+    "ward save",
+    "saving throw",
+    "armour value",
+    "regenerat"
+  ],
+  "heuristic": [
+    [
+      "command sub-phase",
+      "Strategy",
+      "Command"
+    ],
+    [
+      "rally",
+      "Strategy",
+      "Rally Fleeing Troops"
+    ],
+    [
+      "stand & shoot",
+      "Movement",
+      "Declare Charges"
+    ],
+    [
+      "stand and shoot",
+      "Movement",
+      "Declare Charges"
+    ],
+    [
+      "impact hit",
+      "Combat",
+      "Choose & Fight"
+    ],
+    [
+      "stomp",
+      "Combat",
+      "Choose & Fight"
+    ],
+    [
+      "break test",
+      "Combat",
+      "Break Test"
+    ],
+    [
+      "panic test",
+      "Combat",
+      "Break Test"
+    ],
+    [
+      "pursuit",
+      "Combat",
+      "Follow Up & Pursuit"
+    ],
+    [
+      "flee",
+      "Combat",
+      "Break Test"
+    ],
+    [
+      "close combat",
+      "Combat",
+      "Choose & Fight"
+    ],
+    [
+      "round of combat",
+      "Combat",
+      "Choose & Fight"
+    ],
+    [
+      "to wound",
+      "Combat",
+      "Choose & Fight"
+    ],
+    [
+      "shooting phase",
+      "Shooting",
+      "Choose Target"
+    ],
+    [
+      "stand & shoot charge reaction",
+      "Movement",
+      "Declare Charges"
+    ],
+    [
+      "missile",
+      "Shooting",
+      "Roll to Hit"
+    ],
+    [
+      "movement phase",
+      "Movement",
+      "Remaining Moves"
+    ],
+    [
+      "march move",
+      "Movement",
+      "Remaining Moves"
+    ],
+    [
+      "charge reaction",
+      "Movement",
+      "Declare Charges"
+    ],
+    [
+      "charge",
+      "Movement",
+      "Charge Moves"
+    ],
+    [
+      "to hit",
+      "Combat",
+      "Choose & Fight"
+    ]
+  ],
+  "learned": {
+    "Dwarf Crafted": [
+      "Movement",
+      "Declare Charges"
+    ],
+    "Shieldwall": [
+      "Movement",
+      "Charge Moves"
+    ],
+    "Fire & Flee": [
+      "Movement",
+      "Declare Charges"
+    ],
+    "\"Hold The Line!\"": [
+      "Combat",
+      "Break Test"
+    ],
+    "Veteran": [
+      "Combat",
+      "Break Test"
+    ],
+    "Handgun Drill": [
+      "Shooting",
+      "Roll to Hit"
+    ],
+    "Counter Charge": [
+      "Combat",
+      "Break Test"
+    ],
+    "First Charge": [
+      "Movement",
+      "Charge Moves"
+    ],
+    "Grinding Wheels": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "Temperamental": [
+      "Movement",
+      "Charge Moves"
+    ],
+    "Master of Ballistics": [
+      "Combat",
+      "Break Test"
+    ],
+    "Furious Charge": [
+      "Movement",
+      "Charge Moves"
+    ],
+    "Impetuous": [
+      "Movement",
+      "Declare Charges"
+    ],
+    "Order of the Knights Panther": [
+      "Movement",
+      "Charge Moves"
+    ],
+    "Arise!": [
+      "Strategy",
+      "Command"
+    ],
+    "From Beneath the Sands": [
+      "Strategy",
+      "Command"
+    ],
+    "Reserve Move": [
+      "Shooting",
+      "Choose Target"
+    ],
+    "Arrows of Asaph": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "Unstoppable Assault": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "Crushing Weight": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "Stable Firing Platform": [
+      "Shooting",
+      "Choose Target"
+    ],
+    "Assorted Weapons": [
+      "Shooting",
+      "Choose Target"
+    ],
+    "Usirian’s Reaper": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "Order of the Fiery Heart": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "Finest Warhorses": [
+      "Combat",
+      "Follow Up & Pursuit"
+    ],
+    "The Knight's Vow": [
+      "Combat",
+      "Break Test"
+    ],
+    "Levies": [
+      "Combat",
+      "Break Test"
+    ],
+    "Peasantry": [
+      "Combat",
+      "Break Test"
+    ],
+    "Warband": [
+      "Combat",
+      "Break Test"
+    ],
+    "Choppas": [
+      "Combat",
+      "Choose & Fight"
+    ],
+    "Ignore Goblin Panic": [
+      "Combat",
+      "Break Test"
+    ],
+    "Waaagh!": [
+      "Strategy",
+      "Command"
+    ],
+    "Tusker Charge": [
+      "Movement",
+      "Charge Moves"
+    ],
+    "Feigned Flight": [
+      "Combat",
+      "Break Test"
+    ],
+    "Release the Fanatics!": [
+      "Combat",
+      "Break Test"
+    ]
+  }
+}
