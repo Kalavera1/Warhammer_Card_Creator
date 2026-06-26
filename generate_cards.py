@@ -98,6 +98,8 @@ class Unit:
     command: list = field(default_factory=list)        # Namen der Kommandogruppe
     other: list = field(default_factory=list)          # (Gruppe, Name, Text) fuer
     # unbekannte typeNames (Vows, Blessings, Command-Texte ...) -> Auffang-Eimer
+    weapon_rules: list = field(default_factory=list)   # Waffen-Sonderregeln (Namen,
+    # z.B. Helblaster, Multiple Shots) -> Erklaerung kommt aus rule_glossary.json
 
 
 # --- Hilfsfunktionen ----------------------------------------------------------
@@ -240,10 +242,18 @@ def build_unit(sel: dict) -> Unit:
             elif tn in WEAPON_TYPES:
                 if pname not in seen_weapons:
                     seen_weapons.add(pname)
+                    rules = ch.get("Special Rules", "-")
                     u.weapons.append(Weapon(
                         pname,
                         ch.get("R", "-"), ch.get("S", "-"),
-                        ch.get("AP", "-"), ch.get("Special Rules", "-")))
+                        ch.get("AP", "-"), rules))
+                    # Referenzierte Waffen-Sonderregeln einsammeln (Namen),
+                    # Erklaerung kommt spaeter aus dem Glossar.
+                    if rules and rules != "-":
+                        for part in rules.split(","):
+                            r_name = part.strip()
+                            if r_name and r_name not in u.weapon_rules:
+                                u.weapon_rules.append(r_name)
 
             elif tn in ("Armour", "Armour Runes"):
                 desc = ch.get("Description", "")
@@ -414,6 +424,9 @@ def short_text(name: str, full: str) -> str:
     summaries = RT.setdefault("summaries", {})
     if name in summaries:
         return summaries[name]
+    base = base_rule_name(name)
+    if base != name and base in summaries:
+        return summaries[base]
     learned = RT.setdefault("learned", {})
     if name in learned:
         return learned[name]
@@ -421,6 +434,34 @@ def short_text(name: str, full: str) -> str:
     learned[name] = auto
     RT_DIRTY = True
     return auto
+
+
+# --- Glossar (rule_glossary.json) --------------------------------------------
+# Erklaerungen fuer Waffen-/Universal-Sonderregeln, die NewRecruit NICHT
+# exportiert (nur Namen im Waffenprofil). Quelle: tow.whfb.app/special-rules.
+RULE_GLOSSARY_PATH = os.path.join(BASE_DIR, "rule_glossary.json")
+
+
+def load_glossary():
+    if os.path.exists(RULE_GLOSSARY_PATH):
+        with open(RULE_GLOSSARY_PATH, encoding="utf-8") as fh:
+            return json.load(fh).get("glossary", {})
+    return {}
+
+
+GLOSSARY = load_glossary()
+
+
+def base_rule_name(name: str) -> str:
+    """Regelname ohne (X)-Klammer, z.B. 'Armour Bane (2)' -> 'Armour Bane'."""
+    return re.sub(r"\s*\(.*?\)", "", name or "").strip()
+
+
+def glossary_lookup(name: str):
+    """Erklaerung einer (Waffen-)Sonderregel oder None."""
+    if name in GLOSSARY:
+        return GLOSSARY[name]
+    return GLOSSARY.get(base_rule_name(name))
 
 
 def build_plan(units):
@@ -688,6 +729,23 @@ def render_back(u: Unit) -> str:
         blocks += (f"<div class='rule other'><span class='rn'>{esc(name)}:</span> "
                    f"<span class='rt'>{hl(short_text(name, text))}</span></div>")
 
+    # Waffen-Sonderregeln (Helblaster, Multiple Shots ...): Erklaerung aus dem
+    # Glossar. Was bereits oben als Sonderregel erklaert ist, wird uebersprungen.
+    shown = {base_rule_name(r.name).casefold() for r in u.special_rules}
+    wpn_blocks = ""
+    for wr in u.weapon_rules:
+        if base_rule_name(wr).casefold() in shown:
+            continue
+        desc = glossary_lookup(wr)
+        if desc:
+            wpn_blocks += (f"<div class='rule wpn'><span class='rn'>{esc(wr)}:</span> "
+                           f"<span class='rt'>{hl(desc)}</span></div>")
+        else:
+            wpn_blocks += (f"<div class='rule wpn'><span class='rn'>{esc(wr)}</span> "
+                           f"<span class='lookup'>– nachschlagen</span></div>")
+    if wpn_blocks:
+        blocks += "<div class='grouphd'>Waffenregeln</div>" + wpn_blocks
+
     if not blocks:
         blocks = "<div class='rule'><i>Keine Sonderregeln</i></div>"
 
@@ -751,11 +809,34 @@ table.weapons td.wrules { font-size:7pt; }
 .rule.item .rn { color:#9ad; }
 .rule.spell .rn { color:#e8a; }
 .rule.other .rn { color:#cda; }
+.rule.wpn .rn { color:#f0b27a; }
+.rule.wpn .lookup { font-size:7pt; color:#9ab; font-style:italic; }
 .rt .hl { color:#ffdf6b; font-weight:700; }
 .grouphd { font-weight:700; font-size:7.2pt; letter-spacing:.5px;
   text-transform:uppercase; color:#bcd; border-top:1px solid #4a7a8c;
   margin:1.6mm 0 1mm; padding-top:1mm; break-after:avoid; }
 .spellmeta { font-size:7pt; color:#cea; margin-left:3px; }
+/* Schnellreferenz-Karte (statische Kernregeln) */
+.refwrap { display:flex; gap:3mm; align-items:flex-start; }
+.refcol { flex:1; min-width:0; }
+.reftbl { border-collapse:collapse; width:100%; margin:0 0 1mm; }
+.reftbl caption { font-weight:700; font-size:7.4pt; text-align:left;
+  text-transform:uppercase; letter-spacing:.4px; color:#f0d27a; padding:1.5mm 0 .6mm; }
+.card.back .reftbl caption { color:#bfe3c4; }
+.reftbl th, .reftbl td { border:1px solid #4a7a8c; text-align:center;
+  font-size:6.4pt; padding:0; line-height:1.5; }
+.card.back .reftbl th, .card.back .reftbl td { border-color:#3f6e49; }
+.reftbl th { background:#3a6678; color:#fff; font-weight:700; }
+.card.back .reftbl th { background:#3a6e48; }
+.reftbl td.rh { background:#3a6678; color:#fff; font-weight:700; }
+.card.back .reftbl td.rh { background:#3a6e48; }
+.reftbl td.no { color:#7da; opacity:.45; }
+.refnote { font-size:6.6pt; color:#bcd; margin:.4mm 0 1.5mm; line-height:1.3; }
+.card.back .refnote { color:#bfe3c4; }
+.refblock { margin-bottom:1.4mm; font-size:7.2pt; line-height:1.3; break-inside:avoid; }
+.refblock .rh2 { font-weight:700; color:#f0d27a; }
+.card.back .refblock .rh2 { color:#9be0a6; }
+.refblock .hl { color:#ffdf6b; font-weight:700; }
 @media print { body { background:#fff; } }
 """
 
@@ -781,6 +862,148 @@ function fitCards(){
 window.addEventListener('load', fitCards);
 window.addEventListener('beforeprint', fitCards);
 """
+
+
+# --- Schnellreferenz-Karte ---------------------------------------------------
+# Statische Kernregeln (aendern sich nie). Werte gegen die offizielle TOW-
+# Referenz geprueft: tow.whfb.app/quick-reference (Treffertabellen, Kampfergebnis)
+# und tow.whfb.app/the-movement-phase/determine-charge-range (Charge);
+# Break/Flee/Panic aus dem TOW-Regelbuch (Kampf- bzw. Psychologie-Phase).
+
+# To-Hit Nahkampf: Zeile = WS Angreifer, Spalte = WS Verteidiger (1..10)
+HIT_MELEE = [
+    [4,4,5,5,5,5,5,5,5,5],
+    [3,4,4,4,5,5,5,5,5,5],
+    [2,3,4,4,4,4,5,5,5,5],
+    [2,3,3,4,4,4,4,4,5,5],
+    [2,2,3,3,4,4,4,4,4,4],
+    [2,2,3,3,3,4,4,4,4,4],
+    [2,2,2,3,3,3,4,4,4,4],
+    [2,2,2,3,3,3,3,4,4,4],
+    [2,2,2,2,3,3,3,3,4,4],
+    [2,2,2,2,3,3,3,3,3,4],
+]
+# To-Wound: Zeile = Staerke, Spalte = Widerstand (1..10); 0 = kann nicht verwunden
+WOUND = [
+    [4,5,6,6,6,6,0,0,0,0],
+    [3,4,5,6,6,6,6,0,0,0],
+    [2,3,4,5,6,6,6,6,0,0],
+    [2,2,3,4,5,6,6,6,6,0],
+    [2,2,2,3,4,5,6,6,6,6],
+    [2,2,2,2,3,4,5,6,6,6],
+    [2,2,2,2,2,3,4,5,6,6],
+    [2,2,2,2,2,2,3,4,5,6],
+    [2,2,2,2,2,2,2,3,4,5],
+    [2,2,2,2,2,2,2,2,3,4],
+]
+# Schuss-To-Hit nach Ballistic Skill 1..10 (BS6+ trifft auf 2+ mit Wiederholung)
+HIT_SHOOT = [6,5,4,3,2,2,2,2,2,2]
+
+
+def _grid_html(caption, corner, matrix, accent_diag=True):
+    head = "".join(f"<th>{c}</th>" for c in range(1, 11))
+    rows = ""
+    for i, row in enumerate(matrix):
+        cells = ""
+        for j, v in enumerate(row):
+            if v == 0:
+                cells += "<td class='no'>–</td>"
+            else:
+                cells += f"<td>{v}+</td>"
+        rows += f"<tr><td class='rh'>{i+1}</td>{cells}</tr>"
+    return (f"<table class='reftbl'><caption>{caption}</caption>"
+            f"<tr><th>{corner}</th>{head}</tr>{rows}</table>")
+
+
+def render_reference_front() -> str:
+    melee = _grid_html("To Hit – Nahkampf (WS Angr. ▸ / WS Vert. ▾)", "A\\V", HIT_MELEE)
+    wound = _grid_html("To Wound (Stärke ▸ / Widerstand ▾)", "S\\T", WOUND)
+    shoot_head = "".join(f"<th>{b}</th>" for b in range(1, 11))
+    shoot_row = "".join(f"<td>{v}+</td>" for v in HIT_SHOOT)
+    shoot = (f"<table class='reftbl'><caption>To Hit – Schießen (nach BS)</caption>"
+             f"<tr><th>BS</th>{shoot_head}</tr>"
+             f"<tr><td class='rh'>D6</td>{shoot_row}</tr></table>")
+    mods = ("<div class='refnote'><b>Schuss-Modifikatoren:</b> "
+            "−1 Bewegt &amp; Schießen · −1 Lange Reichweite · −1 Stand &amp; Shoot · "
+            "−1 Ziel in Teildeckung · −2 Ziel in voller Deckung. "
+            "BS&nbsp;6+ trifft auf 2+ und darf Fehlwürfe wiederholen. "
+            "Natürliche 1 verwundet nie.</div>")
+    return f"""
+    <div class="card front"><div class="fit">
+      <div class="cardhead"><div class="title">Schnellreferenz – Kampf</div>
+        <div class="pts">Würfeltabellen</div></div>
+      {melee}
+      <div class="refwrap">
+        <div class="refcol">{wound}</div>
+      </div>
+      {shoot}
+      {mods}
+    </div></div>"""
+
+
+def _refblock(title, body):
+    return f"<div class='refblock'><span class='rh2'>{title}:</span> {body}</div>"
+
+
+def render_reference_back() -> str:
+    blocks = ""
+    blocks += _refblock("Leadership-Test",
+        "2W6 würfeln; <span class='hl'>≤ Leadership</span> = bestanden.")
+    blocks += _refblock("Charge",
+        "Charge-Reichweite = <span class='hl'>Movement + Charge-Wurf</span> "
+        "(2W6, niedrigeren streichen → höchster Würfel). Swiftstride: 3W6, niedrigsten streichen, +3\".")
+    blocks += _refblock("Flucht / Verfolgung",
+        "Flieht <span class='hl'>2W6\"</span>; Verfolgung <span class='hl'>2W6\"</span>. "
+        "Erreicht die Verfolgung die Fliehenden, sind sie vernichtet. "
+        "Über die Tischkante = vernichtet.")
+    blocks += _refblock("Restraint-Test",
+        "Leadership-Test bestehen, um <i>nicht</i> zu verfolgen/nachzurücken "
+        "(stattdessen gratis neu ausrichten).")
+    blocks += _refblock("Rally",
+        "Zu Beginn ihres Zuges machen fliehende Einheiten einen Rally-Test "
+        "(Leadership-Test); bestanden = sammeln &amp; neu formieren.")
+    blocks += _refblock("Break-Test (Kampf verloren)",
+        "2W6 + (Kampfergebnis-Differenz). "
+        "<b>Roher Wurf &gt; LD</b> → Einheit bricht &amp; flieht. "
+        "<b>Roh ≤ LD, modifiziert &gt; LD</b> → Fall Back in Good Order. "
+        "<b>Modifiziert ≤ LD</b> (oder Pasch 1) → Give Ground.")
+    blocks += _refblock("Panic-Test",
+        "Auslöser: <span class='hl'>25%+ Verluste</span> in einer Phase außerhalb des Nahkampfs; "
+        "befreundete Einheit (US&nbsp;5+) <span class='hl'>innerhalb 6\"</span> bricht/flieht; "
+        "befreundete Einheit innerhalb 6\" vernichtet. 2W6 ≤ LD = bestanden.")
+    cr = ("<table class='reftbl'><caption>Kampfergebnis (+Punkte)</caption>"
+          "<tr><th>Faktor</th><th>Pkt</th></tr>"
+          "<tr><td class='rh'>Verursachte Wunden</td><td>+1 je</td></tr>"
+          "<tr><td class='rh'>Glied-Bonus</td><td>+1 je Glied</td></tr>"
+          "<tr><td class='rh'>Standarte</td><td>+1</td></tr>"
+          "<tr><td class='rh'>Armee-Standarte (BSB)</td><td>+1</td></tr>"
+          "<tr><td class='rh'>Flankenangriff</td><td>+1</td></tr>"
+          "<tr><td class='rh'>Rückenangriff</td><td>+2</td></tr>"
+          "<tr><td class='rh'>Höherer Stand (High Ground)</td><td>+1</td></tr>"
+          "<tr><td class='rh'>Overkill (Herausforderung)</td><td>+1 je Überwunde</td></tr>"
+          "<tr><td class='rh'>Höhere Unit Strength (Masse)</td><td>+1</td></tr>"
+          "</table>")
+    return f"""
+    <div class="card back"><div class="fit">
+      <div class="cardhead"><div class="title">Schnellreferenz – Würfe</div>
+        <div class="pts back">Abläufe</div></div>
+      {blocks}
+      {cr}
+    </div></div>"""
+
+
+def render_reference_document() -> str:
+    front = render_reference_front()
+    back = render_reference_back()
+    return f"""<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8">
+<title>Schnellreferenz – Kernregeln</title>
+<style>{CSS}</style></head>
+<body>
+<div class="page">{front}</div>
+<div class="page">{back}</div>
+<script>{FIT_JS}</script>
+</body></html>"""
 
 
 def render_document(army_name, total, units) -> str:
@@ -856,6 +1079,11 @@ def main():
             process_file(f, outdir)
         except Exception as e:  # noqa: BLE001
             print(f"  FEHLER: {e}")
+    # Schnellreferenz-Karte (statische Kernregeln) – einmal pro Lauf
+    ref_out = os.path.join(outdir, "Schnellreferenz.html")
+    with open(ref_out, "w", encoding="utf-8") as fh:
+        fh.write(render_reference_document())
+    print(f"Schnellreferenz  ->  {ref_out}")
     save_rule_phases()  # neu gelernte Phasen-Zuordnungen sichern
     save_rule_text()    # neu gekuerzte Regeltexte sichern
 

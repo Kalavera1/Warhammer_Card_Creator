@@ -1,0 +1,28 @@
+{
+  "_comment": "Erklaerungen fuer Waffen-/Universal-Sonderregeln, die NewRecruit NICHT exportiert (nur die Namen stehen im Waffenprofil). Schluessel = Regelname OHNE (X)-Klammer. Quelle/Pruefung: https://tow.whfb.app/special-rules . Frei editierbar; fehlende Regeln einfach ergaenzen.",
+  "glossary": {
+    "Helblaster": "Before rolling To Hit, roll 3 Artillery dice; shots fired = their total. 1 Misfire: all shots −1 To Hit. 2 Misfires: no shots, roll on the Black Powder Misfire table. 3 Misfires: fires 30 shots, then is destroyed.",
+    "Move or Shoot": "Cannot be fired in the Shooting phase if the model moved for any reason this turn (including rallying).",
+    "Move or Fire": "Cannot be fired in the Shooting phase if the model moved for any reason this turn (including rallying).",
+    "Quick Shot": "Does not suffer the usual −1 To Hit modifier for moving and shooting.",
+    "Multiple Shots": "May fire a single shot, or the number shown in brackets. If firing multiple shots, each To Hit roll suffers an additional −1 modifier.",
+    "Volley Fire": "When shooting, half (rounding up) of the models in each rank behind the front rank may also shoot. Not usable if the unit moved this turn or when making a Stand & Shoot.",
+    "Cumbersome": "Cannot be used when making a Stand & Shoot charge reaction.",
+    "Killing Blow": "Natural 6 To Wound in combat: an infantry or cavalry target gets no Armour or Regeneration save (Ward saves still apply) and, if wounded, loses all remaining Wounds.",
+    "Heroic Killing Blow": "As Killing Blow, but works against a target of any troop type (including monsters and larger models).",
+    "Multiple Wounds": "Each unsaved wound is multiplied by the value shown (e.g. (2) = 2 Wounds lost per unsaved wound).",
+    "Armour Bane": "On a natural 6 To Wound, the weapon's Armour Piercing is improved by the value shown.",
+    "Requires Two Hands": "Uses both hands: while wielding it you get no shield benefit in combat and no +1 Attack from an additional hand weapon (paired weapons).",
+    "Strike Last": "Reduces the model's Initiative to 1 in combat (before other modifiers). Cancels out with Strike First.",
+    "Strikes Last": "Reduces the model's Initiative to 1 in combat (before other modifiers). Cancels out with Strike First.",
+    "Breath Weapon": "Once per round in the Shooting phase: place the flame template from the model's base across its front arc. Not usable in combat or as a Stand & Shoot reaction.",
+    "Magical Attacks": "Hits from this weapon count as magical (needed to harm Ethereal and similar models).",
+    "Flaming Attacks": "Hits count as flaming: they negate Regeneration and are especially effective against flammable foes.",
+    "Fight in Extra Rank": "The unit may make supporting attacks from one additional rank.",
+    "Dwarf Crafted": "Does not suffer the usual −1 To Hit modifier when making a Stand & Shoot charge reaction.",
+    "Bombardment": "Indirect fire: does not need line of sight to the target (the shot is hurled over intervening units and terrain), but is otherwise treated as a normal shot.",
+    "Cannon Fire": "Choose a point within the war machine's line of sight and maximum range; resolve the cannonball's strike and bounce against models in its path. Uses the Black Powder Misfire table.",
+    "Multi-Barrelled": "When shooting (organ gun), roll two Artillery dice before rolling To Hit; the number of shots fired equals their total.",
+    "Ponderous": "Suffers a −2 To Hit modifier for Moving and Shooting, instead of the usual −1."
+  }
+}

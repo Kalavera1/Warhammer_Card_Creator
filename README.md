@@ -34,6 +34,14 @@ Pro Liste entstehen in `output/` **zwei** Dateien:
 - `<Name>.html` – die Unit-Karten
 - `<Name>_plan.html` – der **Ablaufplan** (Phasen-Cheatsheet) der Armee
 
+Zusätzlich entsteht **einmal pro Lauf** eine listenunabhängige
+**`Schnellreferenz.html`** – eine Karte (Vorder- + Rückseite) mit den
+statischen Kernregeln: To-Hit-Tabellen (Nahkampf & Schießen), To-Wound-Tabelle,
+Schuss-Modifikatoren sowie alle Würfe/Abläufe (Leadership-Test, Charge, Flee &
+Pursuit, Rally, Restraint, Break-Test, Panic-Test) und die Kampfergebnis-Boni.
+Werte geprüft gegen <https://tow.whfb.app/quick-reference> u. a. Im selben
+A6-Format, mitdruckbar im Karten-Deck.
+
 Zum Drucken/PDF die Datei im Browser
 öffnen und **Strg+P** → beidseitig drucken (Wenden an der **langen Kante**).
 Reihenfolge der Seiten: Blatt 1 = 2 Vorderseiten, Blatt 2 = die passenden
@@ -74,6 +82,14 @@ bei `rule_phases.json`:
   korrigierbar oder nach `summaries` verschiebbar
 
 Da ein Eintrag pro Name gilt, sieht dieselbe Regel überall gleich aus.
+
+**Waffenregeln-Glossar (`rule_glossary.json`):** NewRecruit exportiert die
+**Beschreibungen der Waffen-Sonderregeln** (Helblaster, Multiple Shots, Killing
+Blow, Breath Weapon …) **nicht** – im Waffenprofil stehen nur die Namen. Diese
+Erklärungen liefert das Glossar und zeigt sie auf der Rückseite unter
+**„Waffenregeln"**. Quelle/Prüfung: <https://tow.whfb.app/special-rules>. Schlüssel
+= Regelname ohne `(X)`-Klammer; fehlende Regeln erscheinen als „– nachschlagen"
+und können einfach in `rule_glossary.json` ergänzt werden.
 
 **Layout der Rückseite:** **immer eine Spalte** (zwei Spalten wären zu klein zum
 Lesen). Passt der Inhalt nicht in die Kartenhöhe, verkleinert ein kleines Script
