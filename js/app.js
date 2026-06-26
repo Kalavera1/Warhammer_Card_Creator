@@ -64,6 +64,7 @@ async function boot() {
 
     setStatus("Bereit. Wähle eine Liste.", "");
     els.ref.disabled = false;
+    refreshGenButton();  // falls schon eine Liste vor dem Laden gewaehlt wurde
   } catch (e) {
     console.error(e);
     setStatus("Fehler beim Laden: " + e.message, "err");
@@ -85,9 +86,13 @@ async function readFiles(fileList) {
     try {
       const txt = await f.text();
       const data = JSON.parse(txt);
-      if (!data.roster) throw new Error("kein 'roster' im JSON");
-      const name = (data.roster.name) || f.name.replace(/\.json$/i, "");
-      rosters.push({ name, data });
+      const isOwb = !data.roster &&
+        ["characters", "core", "special", "rare"].some(k => k in data);
+      if (!data.roster && !isOwb)
+        throw new Error("weder NewRecruit ('roster') noch Old World Builder");
+      const name = (data.roster && data.roster.name) || data.name ||
+        f.name.replace(/\.(owb\.)?json$/i, "");
+      rosters.push({ name, data, isOwb, army: data.army || "" });
     } catch (e) {
       problems.push(`${f.name}: ${e.message}`);
     }
@@ -106,25 +111,62 @@ async function readFiles(fileList) {
       + (problems.length ? `<br><span style="color:#ff9a8a">Übersprungen: ${problems.join("; ")}</span>` : "")
     : `<span style="color:#ff9a8a">Keine gültige Liste. ${problems.join("; ")}</span>`;
 
-  els.gen.disabled = !(ok && gen);
-  if (ok) setStatus(`Bereit – „Karten erzeugen“ klicken.`, "");
+  refreshGenButton();
+  if (ok) setStatus(gen ? `Bereit – „Karten erzeugen“ klicken.`
+                        : `Liste geladen – warte auf Python-Laufzeit …`, "busy");
 }
 
-function generate() {
+function refreshGenButton() {
+  els.gen.disabled = !(rosters.length && gen);
+}
+
+// Old World Builder liefert keine Statwerte -> live von tow.whfb.app holen.
+// buildId wird live aus der Startseite gelesen (selbstheilend bei Deploys).
+// tow.whfb.app sendet 'Access-Control-Allow-Origin: *', daher im Browser erlaubt.
+async function fetchOwbStats(armySlug) {
+  if (!armySlug) return [];
+  try {
+    const home = await (await fetch("https://tow.whfb.app/")).text();
+    const bid = (home.match(/"buildId":"([^"]+)"/) || [])[1];
+    if (!bid) return [];
+    const res = await fetch(
+      `https://tow.whfb.app/_next/data/${bid}/army/${armySlug}.json`);
+    if (!res.ok) return [];
+    const j = await res.json();
+    return (j.pageProps && j.pageProps.units) || [];
+  } catch (e) {
+    console.warn("tow.whfb.app-Statabruf fehlgeschlagen:", e);
+    return [];
+  }
+}
+
+async function generate() {
   if (!gen || !rosters.length) return;
   const idx = Math.max(0, Number(els.pick.value) || 0);
   const r = rosters[idx];
+  els.gen.disabled = true;
   try {
+    let statUnits = [];
+    if (r.isOwb) {
+      setStatus(`Old World Builder – hole Statwerte für „${r.army}“ live von tow.whfb.app …`, "busy");
+      statUnits = await fetchOwbStats(r.army);
+      if (!statUnits.length)
+        setStatus("Keine Statwerte von tow.whfb.app – Karten ohne Statline.", "err");
+    }
     setStatus(`Erzeuge Karten für „${r.name}“ …`, "busy");
-    // JS-Objekt -> Python dict; HTML zurueck als JS-String.
+    // JS-Objekt -> Python; HTML zurueck als JS-String.
     const pyData = pyodide.toPy(r.data);
-    const html = gen.build_cards_html(pyData, r.name);
-    pyData.destroy?.();
+    const pyStats = pyodide.toPy(statUnits);
+    const html = gen.build_cards_html(pyData, r.name, pyStats);
+    pyData.destroy?.(); pyStats.destroy?.();
     showHtml(html);
-    setStatus(`Fertig: „${r.name}“.`, "");
+    setStatus(`Fertig: „${r.name}“`
+      + (r.isOwb ? ` · ${statUnits.length} Statprofile live von tow.whfb.app` : ""), "");
   } catch (e) {
     console.error(e);
     setStatus("Fehler beim Erzeugen: " + e.message, "err");
+  } finally {
+    els.gen.disabled = false;
   }
 }
 

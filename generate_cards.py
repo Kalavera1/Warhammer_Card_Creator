@@ -323,11 +323,201 @@ def load_units(path: str):
     return units_from_roster(data, fallback_name=os.path.basename(path))
 
 
-def build_cards_html(data: dict, fallback_name: str = "Armee") -> str:
+def build_cards_html(data: dict, fallback_name: str = "Armee",
+                     stat_units=None) -> str:
     """Browser-Eintrittspunkt: geparste Listen-JSON -> fertiges Karten-HTML-
-    Dokument (Vorder-/Rueckseiten). Nutzt dieselbe Render-Pipeline wie die CLI."""
-    army_name, total, units = units_from_roster(data, fallback_name=fallback_name)
+    Dokument (Vorder-/Rueckseiten). Erkennt NewRecruit/BattleScribe und Old
+    World Builder automatisch. 'stat_units' = optionale Liste von tow.whfb.app-
+    Profilen (nur fuer OWB noetig, da OWB keine Statwerte exportiert)."""
+    if is_owb(data):
+        army_name, total, units = units_from_owb(data, stat_units)
+    else:
+        army_name, total, units = units_from_roster(data, fallback_name=fallback_name)
     return render_document(army_name, total, units)
+
+
+# --- Old World Builder (OWB) Import ------------------------------------------
+# OWB exportiert KEINE Statwerte (nur Namen/Punkte/Optionen/Regelnamen). Die
+# Statlines werden live von tow.whfb.app geholt und als 'stat_units' (Liste der
+# Fraktions-Profile) hineingegeben. Der Netzwerkabruf passiert AUSSERHALB dieses
+# Moduls (Browser: JS fetch; CLI: fetch_owb_stat_units via urllib), damit das
+# Modul selbst offline/netzwerkfrei bleibt (NewRecruit-Pfad unberuehrt).
+OWB_CATEGORIES = [("characters", "Characters"), ("core", "Core"),
+                  ("special", "Special"), ("rare", "Rare"),
+                  ("mercenaries", "Mercenaries"), ("allies", "Allies")]
+
+
+def is_owb(data: dict) -> bool:
+    """OWB-Export erkennen: kein 'roster', aber Kategorie-Arrays."""
+    return isinstance(data, dict) and "roster" not in data and any(
+        k in data for k in ("characters", "core", "special", "rare"))
+
+
+def _owb_norm(s: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+
+def _owb_name(o: dict) -> str:
+    return o.get("name_en") or o.get("name_de") or o.get("name") or "?"
+
+
+def _owb_active(lst):
+    return [x for x in (lst or []) if x.get("active")]
+
+
+def _stat_index(stat_units):
+    """tow-Profile -> (exakt-Index, nach Laenge sortierte Liste fuer Teilstring)."""
+    idx, ordered = {}, []
+    for u in stat_units or []:
+        f = u.get("fields", u) if isinstance(u, dict) else {}
+        nm = f.get("name")
+        if not nm:
+            continue
+        idx[_owb_norm(nm)] = f
+        ordered.append((_owb_norm(nm), f))
+    ordered.sort(key=lambda x: -len(x[0]))
+    return idx, ordered
+
+
+def _match_profile(name, idx, ordered):
+    """Einheitenname -> tow-Profil: exakt, dann ' of X'-Suffix strippen, dann
+    Teilstring (laengster tow-Name zuerst)."""
+    n = _owb_norm(name)
+    if n in idx:
+        return idx[n]
+    base = name
+    while re.search(r"\s+of\s+", base, re.I):
+        base = re.sub(r"\s+of\s+[\w\s]+$", "", base, flags=re.I).strip()
+        if _owb_norm(base) in idx:
+            return idx[_owb_norm(base)]
+    for tn, f in ordered:
+        if tn and (tn in n or n in tn):
+            return f
+    return None
+
+
+def _profile_troop_type(prof) -> str:
+    tt = prof.get("troopType")
+    if isinstance(tt, list) and tt:
+        return (tt[0].get("fields", {}) or {}).get("name", "") or ""
+    return ""
+
+
+def _add_profile_models(u: Unit, prof, fallback_name):
+    for line in prof.get("unitProfile", []) or []:
+        stats = {k: str(line.get(k, "-")) for k in STAT_KEYS}
+        u.models.append(ModelProfile(line.get("Name") or fallback_name, stats, 1))
+
+
+def _rule_summary(name: str) -> str:
+    """Kurztext einer Regel allein anhand des Namens (OWB liefert keine Texte):
+    rule_text.json (summaries/learned, mit Klammer-Fallback) sonst Glossar."""
+    for table in (RT.get("summaries", {}), RT.get("learned", {})):
+        if name in table:
+            return table[name]
+        base = base_rule_name(name)
+        if base != name and base in table:
+            return table[base]
+    return glossary_lookup(name) or ""
+
+
+def _build_owb_unit(o: dict, category: str, idx, ordered) -> Unit:
+    u = Unit(name=_owb_name(o), category=category)
+    try:
+        u.points = int(o.get("points") or 0)
+    except (TypeError, ValueError):
+        u.points = 0
+
+    # Statline live aus tow.whfb.app (per Namens-Matching)
+    prof = _match_profile(u.name, idx, ordered)
+    if prof:
+        u.troop_type = _profile_troop_type(prof)
+        _add_profile_models(u, prof, u.name)
+
+    # Reittier (aktiv, nicht "zu Fuss"): eigene Statline-Zeile anhaengen
+    for m in _owb_active(o.get("mounts")):
+        nm = m.get("name_en") or m.get("name") or ""
+        if nm and "foot" not in nm.lower() and "fuss" not in nm.lower():
+            mp = _match_profile(nm, idx, ordered)
+            if mp:
+                _add_profile_models(u, mp, nm)
+
+    # Waffen: nur Namen (OWB hat keine R/S/AP-Profile)
+    for e in _owb_active(o.get("equipment")):
+        nm = e.get("name_en") or e.get("name")
+        if nm:
+            u.weapons.append(Weapon(nm))
+
+    # Ruestung -> Save-Teile (Namen)
+    for a in _owb_active(o.get("armor")):
+        nm = a.get("name_en") or a.get("name")
+        if nm:
+            u.save_parts.append(nm)
+
+    # Magische Gegenstaende + aktive Optionen (Vows etc.) + Banner aus Kommando
+    for grp in o.get("items", []) or []:
+        for it in grp.get("selected", []) or []:
+            nm = it.get("name_en") or it.get("name")
+            if nm:
+                u.magic_items.append(NamedText(nm, _rule_summary(nm)))
+    for opt in _owb_active(o.get("options")):
+        nm = opt.get("name_en") or opt.get("name")
+        if nm:
+            u.magic_items.append(NamedText(nm, _rule_summary(nm)))
+
+    # Kommandogruppe (aktiv) + ggf. getragene magische Banner
+    for c in _owb_active(o.get("command")):
+        nm = c.get("name_en") or c.get("name")
+        if nm:
+            u.command.append(nm)
+        for b in ((c.get("magic") or {}).get("selected", []) or []):
+            bn = b.get("name_en") or b.get("name")
+            if bn:
+                u.magic_items.append(NamedText(bn, _rule_summary(bn)))
+
+    # Sonderregeln: Namen aus specialRules (kommagetrennt) -> Kurztext per Name
+    sr = o.get("specialRules") or {}
+    srnames = sr.get("name_en") or sr.get("name_de") or sr.get("name") or ""
+    seen = set()
+    for rn in (x.strip() for x in srnames.split(",")):
+        if rn and rn.casefold() not in seen:
+            seen.add(rn.casefold())
+            u.special_rules.append(NamedText(rn, _rule_summary(rn)))
+    return u
+
+
+def units_from_owb(data: dict, stat_units=None):
+    """OWB-Export -> (army_name, total, units). 'stat_units' liefert die
+    Statlines (Liste von tow.whfb.app-Profilen); ohne sie bleiben die Karten
+    ohne Statline (Namen/Regeln trotzdem vorhanden)."""
+    idx, ordered = _stat_index(stat_units)
+    army_name = data.get("name") or "Old World Builder"
+    total = data.get("points", "") or ""
+    units = []
+    for key, label in OWB_CATEGORIES:
+        for o in data.get(key, []) or []:
+            units.append(_build_owb_unit(o, label, idx, ordered))
+    return army_name, total, units
+
+
+def fetch_owb_stat_units(army_slug: str):
+    """CLI-Netzwerkpfad: holt live von tow.whfb.app die Fraktions-Profile.
+    buildId wird live aus der Startseite gelesen (selbstheilend bei Deploys).
+    Gibt [] zurueck, wenn nichts erreichbar ist (Karten dann ohne Statline)."""
+    import urllib.request
+    def _get(url):
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        return urllib.request.urlopen(req, timeout=20).read().decode("utf-8")
+    try:
+        m = re.search(r'"buildId":"([^"]+)"', _get("https://tow.whfb.app/"))
+        if not m or not army_slug:
+            return []
+        url = f"https://tow.whfb.app/_next/data/{m.group(1)}/army/{army_slug}.json"
+        return json.loads(_get(url)).get("pageProps", {}).get("units", []) or []
+    except Exception as e:  # noqa: BLE001
+        print(f"  Hinweis: tow.whfb.app-Statabruf fehlgeschlagen ({e}) – "
+              f"Karten ohne Statline.")
+        return []
 
 
 # --- Ablaufplan (Phasen-Cheatsheet) ------------------------------------------
@@ -1042,7 +1232,16 @@ def render_document(army_name, total, units) -> str:
 
 
 def process_file(path: str, outdir: str):
-    army_name, total, units = load_units(path)
+    data = json.load(open(path, encoding="utf-8"))
+    if is_owb(data):
+        slug = data.get("army", "")
+        print(f"  Old World Builder erkannt – hole Statwerte fuer '{slug}' "
+              f"live von tow.whfb.app ...")
+        stat_units = fetch_owb_stat_units(slug)
+        army_name, total, units = units_from_owb(data, stat_units)
+    else:
+        army_name, total, units = units_from_roster(
+            data, fallback_name=os.path.basename(path))
     doc = render_document(army_name, total, units)
     base = os.path.splitext(os.path.basename(path))[0]
     out = os.path.join(outdir, base + ".html")
