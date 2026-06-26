@@ -162,6 +162,25 @@ Das komplette Aussehen steckt in der `CSS`-Konstante in `generate_cards.py`
   Top-Level-Selection vom Typ `unit` (oder mit eigenem Profil) wird eine Karte.
 - `*.json:Zone.Identifier`-Dateien (Windows-Downloadmarker) werden ignoriert.
 
+## Web-App (im Browser, ohne Installation)
+
+Neben der lokalen CLI gibt es eine **Browser-Version** auf GitHub Pages:
+
+**<https://kalavera1.github.io/Warhammer_Card_Creator/>**
+
+Liste(n) als JSON wählen → die Karten werden direkt im Browser erzeugt und können
+über den Druck-Dialog als PDF gespeichert werden. Technik:
+
+- Der **unveränderte** Generator (`generate_cards.py`) läuft per **Pyodide**
+  (CPython als WebAssembly) im Browser – kein Server, **nichts wird hochgeladen**,
+  die Liste bleibt auf dem Gerät des Nutzers.
+- Frontend: `index.html` + `js/app.js`. Diese laden `generate_cards.py` und die
+  drei Datendateien in Pyodides virtuelles Dateisystem und rufen
+  `build_cards_html(data)` bzw. `render_reference_document()` auf – also exakt
+  dieselbe Render-Pipeline wie die CLI (eine Quelle der Wahrheit).
+- Die **lokale CLI bleibt unverändert** voll nutzbar (`python3 generate_cards.py`,
+  `run.sh`, `Karten erstellen.bat`).
+
 ## Mitentwickeln / Branch-Workflow
 
 Das Projekt liegt auf GitHub:

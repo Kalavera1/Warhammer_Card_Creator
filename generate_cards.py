@@ -302,10 +302,12 @@ def build_unit(sel: dict) -> Unit:
     return u
 
 
-def load_units(path: str):
-    data = json.load(open(path, encoding="utf-8"))
+def units_from_roster(data: dict, fallback_name: str = ""):
+    """Kern der Listen-Auswertung: geparste NewRecruit/BattleScribe-Daten ->
+    (army_name, total, units). Pfad-unabhaengig, damit auch der Browser (Pyodide)
+    die geparste JSON direkt hineingeben kann."""
     roster = data["roster"]
-    army_name = roster.get("name", os.path.basename(path))
+    army_name = roster.get("name") or fallback_name
     total = next((c["value"] for c in roster.get("costs", [])
                   if c.get("name") == "pts"), "")
     units = []
@@ -314,6 +316,18 @@ def load_units(path: str):
             if sel.get("type") == "unit" or sel.get("profiles"):
                 units.append(build_unit(sel))
     return army_name, total, units
+
+
+def load_units(path: str):
+    data = json.load(open(path, encoding="utf-8"))
+    return units_from_roster(data, fallback_name=os.path.basename(path))
+
+
+def build_cards_html(data: dict, fallback_name: str = "Armee") -> str:
+    """Browser-Eintrittspunkt: geparste Listen-JSON -> fertiges Karten-HTML-
+    Dokument (Vorder-/Rueckseiten). Nutzt dieselbe Render-Pipeline wie die CLI."""
+    army_name, total, units = units_from_roster(data, fallback_name=fallback_name)
+    return render_document(army_name, total, units)
 
 
 # --- Ablaufplan (Phasen-Cheatsheet) ------------------------------------------

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Warhammer: The Old World – Karten-Generator</title>
+  <style>
+    :root { --bg:#1b2a33; --panel:#22323c; --accent:#f0d27a; --accent2:#1f5066;
+            --text:#eef3f5; --muted:#9fb3bd; --ok:#3a6e48; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:var(--bg);
+           color:var(--text); line-height:1.5; }
+    header { background:var(--accent2); padding:18px 22px; border-bottom:3px solid var(--accent); }
+    header h1 { margin:0; font-size:20px; letter-spacing:.3px; }
+    header p { margin:4px 0 0; color:#cfe0e8; font-size:13px; }
+    main { max-width:920px; margin:0 auto; padding:22px; }
+    .panel { background:var(--panel); border:1px solid #34474f; border-radius:10px;
+             padding:18px; margin-bottom:18px; }
+    .panel h2 { margin:0 0 10px; font-size:15px; color:var(--accent); }
+    .drop { border:2px dashed #4a7a8c; border-radius:10px; padding:26px; text-align:center;
+            cursor:pointer; transition:.15s; background:#1f2e37; }
+    .drop.hover { border-color:var(--accent); background:#243640; }
+    .drop strong { color:var(--accent); }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:14px; }
+    button { font:inherit; font-weight:600; border:0; border-radius:8px; padding:10px 16px;
+             cursor:pointer; background:var(--accent); color:#1f3a47; }
+    button.secondary { background:#33505f; color:var(--text); }
+    button:disabled { opacity:.45; cursor:not-allowed; }
+    select { font:inherit; padding:8px 10px; border-radius:8px; border:1px solid #4a7a8c;
+             background:#1f2e37; color:var(--text); }
+    .status { font-size:13px; color:var(--muted); min-height:20px; }
+    .status.busy { color:var(--accent); }
+    .status.err { color:#ff9a8a; }
+    .files { font-size:13px; color:var(--muted); margin-top:8px; }
+    .files b { color:var(--text); }
+    iframe { width:100%; height:78vh; border:1px solid #34474f; border-radius:10px;
+             background:#fff; margin-top:8px; }
+    .hint { font-size:12px; color:var(--muted); margin-top:10px; }
+    a { color:var(--accent); }
+    .hidden { display:none; }
+    code { background:#15212833; padding:1px 5px; border-radius:4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>⚔️ Warhammer: The Old World – Karten-Generator</h1>
+    <p>NewRecruit/BattleScribe-Liste (JSON) wählen → druckfertige Unit-Karten. Läuft komplett im
+       Browser – deine Liste wird <b>nicht</b> hochgeladen.</p>
+  </header>
+
+  <main>
+    <div class="panel">
+      <h2>1 · Liste(n) wählen</h2>
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept=".json,application/json" multiple class="hidden">
+        <div>📄 JSON-Datei(en) hierher ziehen oder <strong>klicken zum Auswählen</strong></div>
+        <div class="hint">Mehrere Listen möglich. Den NewRecruit-Export als <code>.json</code> speichern.</div>
+      </label>
+      <div class="files" id="files"></div>
+      <div class="row">
+        <select id="pick" class="hidden"></select>
+        <button id="gen" disabled>Karten erzeugen</button>
+        <button id="ref" class="secondary">Schnellreferenz anzeigen</button>
+        <button id="print" class="secondary hidden">🖨️ Drucken / Als PDF</button>
+      </div>
+      <div class="status" id="status">Lade Python-Laufzeit (Pyodide) …</div>
+    </div>
+
+    <div class="panel hidden" id="outpanel">
+      <h2>2 · Vorschau <span class="hint">(zum Drucken/PDF den Button oben nutzen – Wenden an der langen Kante für Duplex)</span></h2>
+      <iframe id="out" title="Karten-Vorschau"></iframe>
+    </div>
+
+    <p class="hint">
+      Offline-Tool · Quellcode &amp; lokale Version:
+      <a href="https://github.com/Kalavera1/Warhammer_Card_Creator" target="_blank" rel="noopener">
+        github.com/Kalavera1/Warhammer_Card_Creator</a>
+    </p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
