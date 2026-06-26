@@ -162,6 +162,21 @@ Das komplette Aussehen steckt in der `CSS`-Konstante in `generate_cards.py`
   Top-Level-Selection vom Typ `unit` (oder mit eigenem Profil) wird eine Karte.
 - `*.json:Zone.Identifier`-Dateien (Windows-Downloadmarker) werden ignoriert.
 
+## Eingabeformate
+
+- **NewRecruit / BattleScribe** (`roster`-JSON) – **volle Karten** mit Statline,
+  Waffenprofilen und Rüstungswurf (alle Werte stehen im Export). Empfohlen.
+- **Old World Builder** (`*.owb.json`) – OWB exportiert **keine Statwerte** (nur
+  Namen/Punkte/Optionen/Regelnamen). Das Tool erkennt das Format automatisch und
+  **holt die Statlines live von [tow.whfb.app](https://tow.whfb.app)** (per
+  Einheitenname; eine Anfrage pro Fraktion, `buildId` wird live ermittelt).
+  Ergebnis: echte Statline + Reittier-Werte + Regel-Kurzfassungen. Waffen
+  erscheinen mit Namen (R/S/AP liegen nicht im OWB-Export). Ohne Internet bzw.
+  ohne Treffer bleiben die Karten ohne Statline, sonst aber vollständig.
+  Der Netzwerkabruf liegt bewusst **außerhalb** von `generate_cards.py` (Browser:
+  JS `fetch`; CLI: `fetch_owb_stat_units` via `urllib`), damit der NewRecruit-Pfad
+  voll offline bleibt.
+
 ## Web-App (im Browser, ohne Installation)
 
 Neben der lokalen CLI gibt es eine **Browser-Version** auf GitHub Pages:
