@@ -17,8 +17,8 @@
     .panel { background:var(--panel); border:1px solid #34474f; border-radius:10px;
              padding:18px; margin-bottom:18px; }
     .panel h2 { margin:0 0 10px; font-size:15px; color:var(--accent); }
-    .drop { border:2px dashed #4a7a8c; border-radius:10px; padding:26px; text-align:center;
-            cursor:pointer; transition:.15s; background:#1f2e37; }
+    .drop { display:block; border:2px dashed #4a7a8c; border-radius:10px; padding:26px;
+            text-align:center; cursor:pointer; transition:.15s; background:#1f2e37; }
     .drop.hover { border-color:var(--accent); background:#243640; }
     .drop strong { color:var(--accent); }
     .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:14px; }
@@ -60,7 +60,7 @@
       <div class="row">
         <select id="pick" class="hidden"></select>
         <button id="gen" disabled>Karten erzeugen</button>
-        <button id="ref" class="secondary">Schnellreferenz anzeigen</button>
+        <button id="ref" class="secondary">Schnellreferenz (PDF)</button>
         <button id="print" class="secondary hidden">🖨️ Drucken / Als PDF</button>
       </div>
       <div class="status" id="status">Lade Python-Laufzeit (Pyodide) …</div>
