@@ -161,3 +161,27 @@ Das komplette Aussehen steckt in der `CSS`-Konstante in `generate_cards.py`
 - Eingaben sind BattleScribe-JSON: `roster.forces[].selections[]`, jede
   Top-Level-Selection vom Typ `unit` (oder mit eigenem Profil) wird eine Karte.
 - `*.json:Zone.Identifier`-Dateien (Windows-Downloadmarker) werden ignoriert.
+
+## Mitentwickeln / Branch-Workflow
+
+Das Projekt liegt auf GitHub:
+<https://github.com/Kalavera1/Warhammer_Card_Creator>
+
+- **`main`** ist immer stabil und lauffähig – hier wird **nicht** direkt entwickelt.
+- Jedes neue Feature / jeder Fix entsteht auf einem eigenen **Feature-Branch**:
+
+  ```bash
+  git checkout main && git pull          # aktuellen Stand holen
+  git checkout -b feature/<kurzname>     # Seiten-Branch anlegen
+  # ... entwickeln, committen ...
+  git push -u origin feature/<kurzname>  # Branch hochladen
+  gh pr create --fill                    # Pull Request nach main öffnen
+  ```
+
+- Nach Review wird der PR nach `main` gemergt; danach den Branch löschen
+  (`git branch -d feature/<kurzname>`).
+
+**Datenschutz:** Persönliche Armeelisten (`lists/*.json`) und der `output/`-Ordner
+sind via `.gitignore` ausgeschlossen und landen nicht im öffentlichen Repo.
+Commits nutzen die GitHub-noreply-Adresse, damit keine private E-Mail in der
+öffentlichen History steht.
