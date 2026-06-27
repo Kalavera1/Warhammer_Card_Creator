@@ -1042,6 +1042,19 @@ table.weapons td.wrules { font-size:7pt; }
 .card.back .refblock .rh2 { color:#9be0a6; }
 .refblock .hl { color:#ffdf6b; font-weight:700; }
 @media print { body { background:#fff; } }
+/* Tintensparender Schwarz-Weiss-Modus: helle Karte, dunkle Schrift.
+   Wird per Klasse 'bw' am <html> der Vorder-/Rueckseiten-Dokumente aktiviert. */
+.bw .card, .bw .card.back { background:#fff !important; color:#111 !important; }
+.bw .card * { color:#111 !important; background-color:transparent !important;
+  border-color:#777 !important; }
+.bw .cardhead { border-bottom-color:#111 !important; }
+.bw .title, .bw .pts, .bw .rn, .bw .reftbl caption,
+.bw .refblock .rh2 { color:#000 !important; font-weight:700; }
+.bw table.stats th, .bw table.weapons th, .bw table.plan th, .bw td.ph, .bw td.sub,
+.bw .reftbl th, .bw .reftbl td.rh, .bw .shield { background:#e7e7e7 !important; }
+.bw .shield { border:1px solid #111 !important; }
+.bw .hl { color:#000 !important; font-weight:700; text-decoration:underline; }
+.bw .reftbl td.no { color:#777 !important; }
 """
 
 
