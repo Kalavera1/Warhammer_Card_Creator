@@ -18,6 +18,8 @@ const els = {
   gen:    document.getElementById("gen"),
   ref:    document.getElementById("ref"),
   print:  document.getElementById("print"),
+  bw:     document.getElementById("bw"),
+  bwwrap: document.getElementById("bwwrap"),
   status: document.getElementById("status"),
   out:    document.getElementById("out"),
   outpanel: document.getElementById("outpanel"),
@@ -75,7 +77,16 @@ function showHtml(html) {
   els.out.srcdoc = html;
   els.outpanel.classList.remove("hidden");
   els.print.classList.remove("hidden");
+  els.bwwrap.classList.remove("hidden");
   els.out.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// Schwarz-weiss-Modus (helle Karte, dunkle Schrift) auf die Vorschau anwenden.
+// Klasse 'bw' am <html> des iframe-Dokuments; das CSS-Theme steckt im Dokument.
+function applyBw() {
+  const doc = els.out.contentDocument;
+  if (doc && doc.documentElement)
+    doc.documentElement.classList.toggle("bw", els.bw.checked);
 }
 
 async function readFiles(fileList) {
@@ -192,6 +203,8 @@ els.file.addEventListener("change", e => readFiles(e.target.files));
 els.gen.addEventListener("click", generate);
 els.ref.addEventListener("click", showReference);
 els.print.addEventListener("click", printOut);
+els.bw.addEventListener("change", applyBw);
+els.out.addEventListener("load", applyBw);  // nach jedem Neu-Rendern Zustand halten
 els.ref.disabled = true;
 
 ["dragover", "dragenter"].forEach(ev =>
