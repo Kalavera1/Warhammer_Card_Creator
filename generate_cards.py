@@ -324,13 +324,13 @@ def load_units(path: str):
 
 
 def build_cards_html(data: dict, fallback_name: str = "Armee",
-                     stat_units=None) -> str:
+                     stat_units=None, lore_spells=None) -> str:
     """Browser-Eintrittspunkt: geparste Listen-JSON -> fertiges Karten-HTML-
     Dokument (Vorder-/Rueckseiten). Erkennt NewRecruit/BattleScribe und Old
-    World Builder automatisch. 'stat_units' = optionale Liste von tow.whfb.app-
-    Profilen (nur fuer OWB noetig, da OWB keine Statwerte exportiert)."""
+    World Builder automatisch. 'stat_units' = tow.whfb.app-Profile (Statlines),
+    'lore_spells' = {lore-slug: [Zauber]} (Lore-Zauber), beides nur fuer OWB."""
     if is_owb(data):
-        army_name, total, units = units_from_owb(data, stat_units)
+        army_name, total, units = units_from_owb(data, stat_units, lore_spells)
     else:
         army_name, total, units = units_from_roster(data, fallback_name=fallback_name)
     return render_document(army_name, total, units)
@@ -421,7 +421,44 @@ def _rule_summary(name: str) -> str:
     return glossary_lookup(name) or ""
 
 
-def _build_owb_unit(o: dict, category: str, idx, ordered) -> Unit:
+def _owb_richtext(body) -> str:
+    """Contentful-Rich-Text -> Klartext (fuer Zauber-Effekte)."""
+    out = []
+    def w(n):
+        if isinstance(n, dict):
+            if n.get("nodeType") == "text":
+                out.append(n.get("value", ""))
+            for c in n.get("content", []) or []:
+                w(c)
+    w(body or {})
+    return " ".join(" ".join(out).split())
+
+
+def _lore_spell_objects(spell_list):
+    """tow /cards/<lore>-Zauber (Signature + 6, bereits in Reihenfolge) -> Spells.
+    Signature wird mit '*' markiert, die uebrigen mit ihrer Wuerfelzahl 1-6."""
+    spells = []
+    for sp in spell_list or []:
+        f = sp.get("fields", sp) if isinstance(sp, dict) else {}
+        name = f.get("name")
+        if not name:
+            continue
+        raw = _owb_richtext(f.get("body"))
+        mc = re.match(r"Type\s+(.+?)\s+Casting Value", raw)
+        category = mc.group(1).strip() if mc else ""
+        me = re.search(r"\bRange\s+\S+\s+(.*)$", raw)
+        effect = me.group(1).strip() if me else raw
+        typ = str(f.get("type", ""))
+        number = "*" if "signature" in typ.lower() else typ
+        cv = f.get("castingValue")
+        casting = f"{cv}+" if cv not in (None, "") else ""
+        spells.append(Spell(name=name, number=number, type=category,
+                            casting=casting, rng=f.get("range", "") or "",
+                            effect=effect))
+    return spells
+
+
+def _build_owb_unit(o: dict, category: str, idx, ordered, lore_spells=None) -> Unit:
     u = Unit(name=_owb_name(o), category=category)
     try:
         u.points = int(o.get("points") or 0)
@@ -483,10 +520,17 @@ def _build_owb_unit(o: dict, category: str, idx, ordered) -> Unit:
         if rn and rn.casefold() not in seen:
             seen.add(rn.casefold())
             u.special_rules.append(NamedText(rn, _rule_summary(rn)))
+
+    # Zauber: OWB nennt nur die gewaehlte Lore (Spells sind zufaellig). Wir zeigen
+    # die KOMPLETTE Lore in Reihenfolge (Signature + 6) zum Auswuerfeln. Die Lore-
+    # Zauber kommen live von tow.whfb.app (/cards/<lore>) ueber 'lore_spells'.
+    lore = o.get("activeLore")
+    if lore and lore_spells and lore_spells.get(lore):
+        u.spells.extend(_lore_spell_objects(lore_spells[lore]))
     return u
 
 
-def units_from_owb(data: dict, stat_units=None):
+def units_from_owb(data: dict, stat_units=None, lore_spells=None):
     """OWB-Export -> (army_name, total, units). 'stat_units' liefert die
     Statlines (Liste von tow.whfb.app-Profilen); ohne sie bleiben die Karten
     ohne Statline (Namen/Regeln trotzdem vorhanden)."""
@@ -496,27 +540,53 @@ def units_from_owb(data: dict, stat_units=None):
     units = []
     for key, label in OWB_CATEGORIES:
         for o in data.get(key, []) or []:
-            units.append(_build_owb_unit(o, label, idx, ordered))
+            units.append(_build_owb_unit(o, label, idx, ordered, lore_spells))
     return army_name, total, units
 
 
-def fetch_owb_stat_units(army_slug: str):
-    """CLI-Netzwerkpfad: holt live von tow.whfb.app die Fraktions-Profile.
-    buildId wird live aus der Startseite gelesen (selbstheilend bei Deploys).
-    Gibt [] zurueck, wenn nichts erreichbar ist (Karten dann ohne Statline)."""
+_TOW_BUILDID = None
+
+
+def _tow_get(url):
     import urllib.request
-    def _get(url):
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        return urllib.request.urlopen(req, timeout=20).read().decode("utf-8")
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    return urllib.request.urlopen(req, timeout=20).read().decode("utf-8")
+
+
+def _tow_pageprops(path: str):
+    """Holt /_next/data/<buildId>/<path>.json -> pageProps. buildId wird einmal
+    pro Lauf live ermittelt (selbstheilend bei tow-Deploys)."""
+    global _TOW_BUILDID
+    if not _TOW_BUILDID:
+        m = re.search(r'"buildId":"([^"]+)"', _tow_get("https://tow.whfb.app/"))
+        _TOW_BUILDID = m.group(1) if m else None
+    if not _TOW_BUILDID:
+        return {}
+    url = f"https://tow.whfb.app/_next/data/{_TOW_BUILDID}/{path}.json"
+    return json.loads(_tow_get(url)).get("pageProps", {})
+
+
+def fetch_owb_stat_units(army_slug: str):
+    """CLI-Netzwerkpfad: Fraktions-Profile (Statlines) live von tow.whfb.app."""
+    if not army_slug:
+        return []
     try:
-        m = re.search(r'"buildId":"([^"]+)"', _get("https://tow.whfb.app/"))
-        if not m or not army_slug:
-            return []
-        url = f"https://tow.whfb.app/_next/data/{m.group(1)}/army/{army_slug}.json"
-        return json.loads(_get(url)).get("pageProps", {}).get("units", []) or []
+        return _tow_pageprops(f"army/{army_slug}").get("units", []) or []
     except Exception as e:  # noqa: BLE001
         print(f"  Hinweis: tow.whfb.app-Statabruf fehlgeschlagen ({e}) – "
               f"Karten ohne Statline.")
+        return []
+
+
+def fetch_owb_lore_spells(lore_slug: str):
+    """CLI-Netzwerkpfad: die 7 Zauber einer Lore (Signature + 6) live von
+    tow.whfb.app (/cards/<lore>), bereits in Wuerfel-Reihenfolge."""
+    if not lore_slug:
+        return []
+    try:
+        return _tow_pageprops(f"cards/{lore_slug}").get("spells", []) or []
+    except Exception as e:  # noqa: BLE001
+        print(f"  Hinweis: Lore-Zauberabruf '{lore_slug}' fehlgeschlagen ({e}).")
         return []
 
 
@@ -920,7 +990,9 @@ def render_back(u: Unit) -> str:
         info = " &middot; ".join(filter(None, [
             f"GW {esc(s.casting)}" if s.casting else "",
             esc(s.type), esc(s.rng)]))
-        blocks += (f"<div class='rule spell'><span class='rn'>{esc(s.name)}</span>"
+        num = (f"<span class='spellnum'>{esc(s.number)}</span> "
+               if s.number else "")
+        blocks += (f"<div class='rule spell'><span class='rn'>{num}{esc(s.name)}</span>"
                    f"<span class='spellmeta'>{info}</span>"
                    f"<div class='rt'>{hl(short_text(s.name, s.effect))}</div></div>")
 
@@ -1020,6 +1092,9 @@ table.weapons td.wrules { font-size:7pt; }
   text-transform:uppercase; color:#bcd; border-top:1px solid #4a7a8c;
   margin:1.6mm 0 1mm; padding-top:1mm; break-after:avoid; }
 .spellmeta { font-size:7pt; color:#cea; margin-left:3px; }
+.spellnum { display:inline-block; min-width:1.2em; text-align:center;
+  font-weight:800; color:#1f3a47; background:#e8a; border-radius:3px;
+  padding:0 2px; margin-right:2px; font-size:7pt; }
 /* Schnellreferenz-Karte (statische Kernregeln) */
 .refwrap { display:flex; gap:3mm; align-items:flex-start; }
 .refcol { flex:1; min-width:0; }
@@ -1251,7 +1326,13 @@ def process_file(path: str, outdir: str):
         print(f"  Old World Builder erkannt – hole Statwerte fuer '{slug}' "
               f"live von tow.whfb.app ...")
         stat_units = fetch_owb_stat_units(slug)
-        army_name, total, units = units_from_owb(data, stat_units)
+        lores = {o.get("activeLore") for grp in OWB_CATEGORIES
+                 for o in data.get(grp[0], []) or [] if o.get("activeLore")}
+        lore_spells = {}
+        for lore in sorted(lores):
+            print(f"    Lore-Zauber '{lore}' ...")
+            lore_spells[lore] = fetch_owb_lore_spells(lore)
+        army_name, total, units = units_from_owb(data, stat_units, lore_spells)
     else:
         army_name, total, units = units_from_roster(
             data, fallback_name=os.path.basename(path))
