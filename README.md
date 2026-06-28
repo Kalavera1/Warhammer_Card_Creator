@@ -177,6 +177,16 @@ Das komplette Aussehen steckt in der `CSS`-Konstante in `generate_cards.py`
   JS `fetch`; CLI: `fetch_owb_stat_units` via `urllib`), damit der NewRecruit-Pfad
   voll offline bleibt.
 
+### Zauber bei OWB
+
+OWB nennt nur die gewählte Magielehre (`activeLore`), nicht die konkreten Zauber
+(die werden im Spiel ausgewürfelt). Hat ein Magier eine Lore gewählt, holt das Tool
+die **komplette Lehre live von tow.whfb.app** (`/cards/<lore>`) und zeigt sie **in
+Würfel-Reihenfolge**: der **Signature-Zauber** (immer verfügbar, mit `*` markiert),
+gefolgt von den **6 nummerierten Zaubern (1–6)** – jeweils mit Gusswert, Kategorie,
+Reichweite und Effekt. So kann man am Tisch direkt mit W6 darauf würfeln. (Bei
+NewRecruit stehen die Zauber inkl. Nummer ohnehin im Export.)
+
 ## Web-App (im Browser, ohne Installation)
 
 Neben der lokalen CLI gibt es eine **Browser-Version** auf GitHub Pages:

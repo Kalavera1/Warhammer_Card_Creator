@@ -131,24 +131,38 @@ function refreshGenButton() {
   els.gen.disabled = !(rosters.length && gen);
 }
 
-// Old World Builder liefert keine Statwerte -> live von tow.whfb.app holen.
+// Old World Builder liefert keine Statwerte/Zauber -> live von tow.whfb.app holen.
 // buildId wird live aus der Startseite gelesen (selbstheilend bei Deploys).
 // tow.whfb.app sendet 'Access-Control-Allow-Origin: *', daher im Browser erlaubt.
+let towBuildId = null;
+async function towPageProps(path) {
+  if (!towBuildId) {
+    const home = await (await fetch("https://tow.whfb.app/")).text();
+    towBuildId = (home.match(/"buildId":"([^"]+)"/) || [])[1] || null;
+  }
+  if (!towBuildId) return {};
+  const res = await fetch(`https://tow.whfb.app/_next/data/${towBuildId}/${path}.json`);
+  if (!res.ok) return {};
+  return (await res.json()).pageProps || {};
+}
+
 async function fetchOwbStats(armySlug) {
   if (!armySlug) return [];
-  try {
-    const home = await (await fetch("https://tow.whfb.app/")).text();
-    const bid = (home.match(/"buildId":"([^"]+)"/) || [])[1];
-    if (!bid) return [];
-    const res = await fetch(
-      `https://tow.whfb.app/_next/data/${bid}/army/${armySlug}.json`);
-    if (!res.ok) return [];
-    const j = await res.json();
-    return (j.pageProps && j.pageProps.units) || [];
-  } catch (e) {
-    console.warn("tow.whfb.app-Statabruf fehlgeschlagen:", e);
-    return [];
+  try { return (await towPageProps(`army/${armySlug}`)).units || []; }
+  catch (e) { console.warn("tow Statabruf:", e); return []; }
+}
+
+// Die 7 Zauber je gewaehlter Lore (Signature + 6, in Reihenfolge) -> {slug: spells}.
+async function fetchOwbLoreSpells(data) {
+  const slugs = new Set();
+  for (const cat of ["characters", "core", "special", "rare", "mercenaries", "allies"])
+    for (const o of (data[cat] || [])) if (o.activeLore) slugs.add(o.activeLore);
+  const map = {};
+  for (const slug of slugs) {
+    try { map[slug] = (await towPageProps(`cards/${slug}`)).spells || []; }
+    catch (e) { console.warn("tow Lore:", slug, e); map[slug] = []; }
   }
+  return map;
 }
 
 async function generate() {
@@ -157,10 +171,11 @@ async function generate() {
   const r = rosters[idx];
   els.gen.disabled = true;
   try {
-    let statUnits = [];
+    let statUnits = [], loreSpells = {};
     if (r.isOwb) {
-      setStatus(`Old World Builder – hole Statwerte für „${r.army}“ live von tow.whfb.app …`, "busy");
-      statUnits = await fetchOwbStats(r.army);
+      setStatus(`Old World Builder – hole Statwerte & Zauber für „${r.army}“ live von tow.whfb.app …`, "busy");
+      [statUnits, loreSpells] = await Promise.all([
+        fetchOwbStats(r.army), fetchOwbLoreSpells(r.data)]);
       if (!statUnits.length)
         setStatus("Keine Statwerte von tow.whfb.app – Karten ohne Statline.", "err");
     }
@@ -168,11 +183,14 @@ async function generate() {
     // JS-Objekt -> Python; HTML zurueck als JS-String.
     const pyData = pyodide.toPy(r.data);
     const pyStats = pyodide.toPy(statUnits);
-    const html = gen.build_cards_html(pyData, r.name, pyStats);
-    pyData.destroy?.(); pyStats.destroy?.();
+    const pyLore = pyodide.toPy(loreSpells);
+    const html = gen.build_cards_html(pyData, r.name, pyStats, pyLore);
+    pyData.destroy?.(); pyStats.destroy?.(); pyLore.destroy?.();
     showHtml(html);
+    const nLore = Object.values(loreSpells).filter(s => s.length).length;
     setStatus(`Fertig: „${r.name}“`
-      + (r.isOwb ? ` · ${statUnits.length} Statprofile live von tow.whfb.app` : ""), "");
+      + (r.isOwb ? ` · ${statUnits.length} Statprofile`
+          + (nLore ? ` · ${nLore} Lore(s) mit Zaubern` : "") + " live von tow.whfb.app" : ""), "");
   } catch (e) {
     console.error(e);
     setStatus("Fehler beim Erzeugen: " + e.message, "err");
