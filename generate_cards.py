@@ -1116,6 +1116,12 @@ table.weapons td.wrules { font-size:7pt; }
 .refblock .rh2 { font-weight:700; color:#f0d27a; }
 .card.back .refblock .rh2 { color:#9be0a6; }
 .refblock .hl { color:#ffdf6b; font-weight:700; }
+/* A4-Version der Schnellreferenz: dieselbe Karte, auf A4 hochskaliert und um
+   90 Grad gedreht -> der Inhalt liegt quer auf dem A4-Blatt (Querformat).
+   Die Rueckseite dreht gegenlaeufig (-90), damit beim Duplexdruck (Wenden an
+   der langen Kante) beide Seiten gleich herum lesbar sind. */
+.page.a4ref .card { transform: rotate(90deg) scale(1.97); }
+.page.a4ref.vs .card { transform: rotate(-90deg) scale(1.97); }
 @media print { body { background:#fff; } }
 /* Tintensparender Schwarz-Weiss-Modus: helle Karte, dunkle Schrift.
    Wird per Klasse 'bw' am <html> der Vorder-/Rueckseiten-Dokumente aktiviert. */
@@ -1285,6 +1291,9 @@ def render_reference_back() -> str:
 
 
 def render_reference_document() -> str:
+    # Seiten 1+2: A6-Karte (fuers Karten-Deck). Seiten 3+4: dieselbe Referenz
+    # als A4-Querformat-Blatt (hochskaliert, siehe CSS .a4ref) - wird beim
+    # Drucken/PDF-Export automatisch mit ausgegeben.
     front = render_reference_front()
     back = render_reference_back()
     return f"""<!DOCTYPE html>
@@ -1294,6 +1303,8 @@ def render_reference_document() -> str:
 <body>
 <div class="page">{front}</div>
 <div class="page">{back}</div>
+<div class="page a4ref">{front}</div>
+<div class="page a4ref vs">{back}</div>
 <script>{FIT_JS}</script>
 </body></html>"""
 
