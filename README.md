@@ -42,6 +42,13 @@ Pursuit, Rally, Restraint, Break-Test, Panic-Test) und die Kampfergebnis-Boni.
 Werte geprüft gegen <https://tow.whfb.app/quick-reference> u. a. Im selben
 A6-Format, mitdruckbar im Karten-Deck.
 
+Die Schnellreferenz enthält **zusätzlich eine A4-Version** (Seiten 3+4): dieselbe
+Vorder- und Rückseite als ganzes **Querformat**-Blatt (der Inhalt liegt quer auf
+dem A4-Blatt, groß und gut lesbar am Spieltisch). Sie ist beim Drucken/PDF-Export
+der `Schnellreferenz.html` automatisch dabei – auch in der Web-App. Beim
+Duplexdruck (lange Kante) sind Vorder- und Rückseite gegenläufig rotiert, sodass
+beide Seiten beim seitlichen Umdrehen des Blatts richtig herum lesbar sind.
+
 Zum Drucken/PDF die Datei im Browser
 öffnen und **Strg+P** → beidseitig drucken (Wenden an der **langen Kante**).
 Reihenfolge der Seiten: Blatt 1 = 2 Vorderseiten, Blatt 2 = die passenden
