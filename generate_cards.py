@@ -324,16 +324,19 @@ def load_units(path: str):
 
 
 def build_cards_html(data: dict, fallback_name: str = "Armee",
-                     stat_units=None, lore_spells=None) -> str:
+                     stat_units=None, lore_spells=None,
+                     doc_title: str = None) -> str:
     """Browser-Eintrittspunkt: geparste Listen-JSON -> fertiges Karten-HTML-
     Dokument (Vorder-/Rueckseiten). Erkennt NewRecruit/BattleScribe und Old
     World Builder automatisch. 'stat_units' = tow.whfb.app-Profile (Statlines),
-    'lore_spells' = {lore-slug: [Zauber]} (Lore-Zauber), beides nur fuer OWB."""
+    'lore_spells' = {lore-slug: [Zauber]} (Lore-Zauber), beides nur fuer OWB.
+    'doc_title' (z. B. Name der hochgeladenen Datei) wird zum <title> und
+    damit zum PDF-Dateinamen-Vorschlag des Browsers."""
     if is_owb(data):
         army_name, total, units = units_from_owb(data, stat_units, lore_spells)
     else:
         army_name, total, units = units_from_roster(data, fallback_name=fallback_name)
-    return render_document(army_name, total, units)
+    return render_document(army_name, total, units, doc_title=doc_title)
 
 
 # --- Old World Builder (OWB) Import ------------------------------------------
@@ -780,7 +783,7 @@ def build_plan(units):
     return slots, passive
 
 
-def render_plan_document(army_name, total, units) -> str:
+def render_plan_document(army_name, total, units, doc_title=None) -> str:
     slots, passive = build_plan(units)
     rows = ""
     for phase, subs in SEQUENCE:
@@ -815,7 +818,7 @@ def render_plan_document(army_name, total, units) -> str:
 
     return f"""<!DOCTYPE html>
 <html lang="de"><head><meta charset="utf-8">
-<title>{esc(army_name)} – Ablaufplan</title>
+<title>{esc(doc_title or f"{army_name} – Ablaufplan")}</title>
 <style>{PLAN_CSS}</style></head>
 <body>
 <h1>{esc(army_name)} <span class='pts'>({total} Pkt)</span> – Ablaufplan</h1>
@@ -1309,7 +1312,7 @@ def render_reference_document() -> str:
 </body></html>"""
 
 
-def render_document(army_name, total, units) -> str:
+def render_document(army_name, total, units, doc_title=None) -> str:
     # 2 Karten pro A4-Blatt. Pro Paar: ein Blatt mit beiden Vorderseiten,
     # danach ein Blatt mit den beiden Rueckseiten in gleicher Position.
     # Beim Duplexdruck (Wenden an der langen Kante) liegen Front/Back deckungsgleich.
@@ -1322,7 +1325,7 @@ def render_document(army_name, total, units) -> str:
         pages += f'<div class="page">{backs}</div>'
     return f"""<!DOCTYPE html>
 <html lang="de"><head><meta charset="utf-8">
-<title>{esc(army_name)} – Unit Cards ({total} Pkt)</title>
+<title>{esc(doc_title or f"{army_name} – Unit Cards ({total} Pkt)")}</title>
 <style>{CSS}</style></head>
 <body>
 {pages}
@@ -1347,14 +1350,17 @@ def process_file(path: str, outdir: str):
     else:
         army_name, total, units = units_from_roster(
             data, fallback_name=os.path.basename(path))
-    doc = render_document(army_name, total, units)
+    # Dokumenttitel = Name der Eingabedatei: der Browser schlaegt beim
+    # Drucken/PDF-Speichern den Seitentitel als Dateinamen vor.
     base = os.path.splitext(os.path.basename(path))[0]
+    doc = render_document(army_name, total, units, doc_title=base)
     out = os.path.join(outdir, base + ".html")
     with open(out, "w", encoding="utf-8") as fh:
         fh.write(doc)
     print(f"  {len(units):2d} Karten  ->  {out}")
     # Ablaufplan als eigene Datei
-    plan = render_plan_document(army_name, total, units)
+    plan = render_plan_document(army_name, total, units,
+                                doc_title=base + "_plan")
     plan_out = os.path.join(outdir, base + "_plan.html")
     with open(plan_out, "w", encoding="utf-8") as fh:
         fh.write(plan)

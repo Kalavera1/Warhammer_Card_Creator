@@ -101,9 +101,11 @@ async function readFiles(fileList) {
         ["characters", "core", "special", "rare"].some(k => k in data);
       if (!data.roster && !isOwb)
         throw new Error("weder NewRecruit ('roster') noch Old World Builder");
-      const name = (data.roster && data.roster.name) || data.name ||
-        f.name.replace(/\.(owb\.)?json$/i, "");
-      rosters.push({ name, data, isOwb, army: data.army || "" });
+      // fname = Eingabedateiname -> wird <title> und damit der Vorschlag
+      // des Browsers beim PDF-Speichern
+      const fname = f.name.replace(/\.(owb\.)?json$/i, "");
+      const name = (data.roster && data.roster.name) || data.name || fname;
+      rosters.push({ name, fname, data, isOwb, army: data.army || "" });
     } catch (e) {
       problems.push(`${f.name}: ${e.message}`);
     }
@@ -184,7 +186,7 @@ async function generate() {
     const pyData = pyodide.toPy(r.data);
     const pyStats = pyodide.toPy(statUnits);
     const pyLore = pyodide.toPy(loreSpells);
-    const html = gen.build_cards_html(pyData, r.name, pyStats, pyLore);
+    const html = gen.build_cards_html(pyData, r.name, pyStats, pyLore, r.fname);
     pyData.destroy?.(); pyStats.destroy?.(); pyLore.destroy?.();
     showHtml(html);
     const nLore = Object.values(loreSpells).filter(s => s.length).length;
