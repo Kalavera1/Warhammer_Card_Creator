@@ -128,6 +128,15 @@ def t_generate_cards():
                 raise RuntimeError(f"fehlt auf den Karten: {needle!r}")
         if "wegfallen" in html:
             raise RuntimeError("Kurztext nicht auf den ersten Satz gekürzt")
+        # Parry: Testtruppe (Schild + Einhandwaffe, 6+ -1 = 5+) muss den
+        # Nahkampfbonus zeigen; Testheld (Schild, aber NUR Zweihandwaffe,
+        # 5+ -1 = 4+) darf ihn NICHT bekommen.
+        if "(4+)*" not in html:
+            raise RuntimeError("Parry-Bonus (4+)* fehlt im Total-Armour-Schild")
+        if "* Parry" not in html:
+            raise RuntimeError("Parry-Fußnote fehlt")
+        if "(3+)*" in html:
+            raise RuntimeError("Parry fälschlich trotz Zweihandwaffe (Testheld)")
         plan_path = os.path.join(td, "testliste_plan.html")
         if not os.path.exists(plan_path):
             raise RuntimeError("Ablaufplan fehlt")

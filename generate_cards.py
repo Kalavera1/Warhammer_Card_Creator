@@ -91,6 +91,7 @@ class Unit:
     weapons: list = field(default_factory=list)
     armour_items: list = field(default_factory=list)  # (name, desc)
     save: str = ""
+    save_melee: str = ""   # Parry: verbesserter Wurf im Nahkampf, z.B. "4+"
     save_parts: list = field(default_factory=list)    # menschenlesbare Teile
     special_rules: list = field(default_factory=list)  # NamedText
     magic_items: list = field(default_factory=list)    # NamedText
@@ -195,6 +196,34 @@ def compute_save(armour_items):
     return f"{final}+", parts
 
 
+_TWO_HANDED_RE = re.compile(r"two.?handed|requires\s+two\s+hands", re.I)
+
+
+def parry_save(u: Unit) -> str:
+    """Parry: Fusstruppen mit Schild + Einhandwaffe (z.B. Handwaffe) haben
+    im Nahkampf eine Ruestungsstufe mehr. Zweihandwaffen erlauben das nicht.
+    Rueckgabe: verbesserter Wurf ("4+") oder "" wenn kein Parry moeglich."""
+    if not u.save or not u.save.endswith("+"):
+        return ""
+    # Feste Werte ("cannot be improved") duerfen nicht verbessert werden
+    if any("fest)" in p for p in u.save_parts):
+        return ""
+    if "infantry" not in (u.troop_type or "").lower():
+        return ""
+    if not any("shield" in (n or "").lower() for n, _ in u.armour_items):
+        return ""
+    # Nahkampfwaffen: mind. eine einhaendige noetig (keine Waffe gelistet
+    # = Handwaffe, die in The Old World jedes Modell traegt)
+    melee = [w for w in u.weapons if "combat" in (w.r or "").lower()]
+    if melee and all(_TWO_HANDED_RE.search(w.rules or "") for w in melee):
+        return ""
+    try:
+        val = int(u.save.rstrip("+"))
+    except ValueError:
+        return ""
+    return f"{max(1, val - 1)}+"
+
+
 # --- Extraktion einer Einheit -------------------------------------------------
 def build_unit(sel: dict) -> Unit:
     u = Unit(name=sel.get("name", "?"))
@@ -296,6 +325,7 @@ def build_unit(sel: dict) -> Unit:
                     u.other.append((tn or "Sonstiges", pname, desc))
 
     u.save, u.save_parts = compute_save(u.armour_items)
+    u.save_melee = parry_save(u)
     if not u.model_count:
         u.model_count = max((m.count for m in u.models), default=1)
     return u
@@ -914,14 +944,20 @@ def render_front(u: Unit) -> str:
 
     save_html = ""
     if u.save:
+        nk = (f"<span class='shieldnk'>({esc(u.save_melee)})*</span>"
+              if u.save_melee else "")
         save_html = ("<div class='shield'>"
                      "<span class='shieldlbl'>Total<br>Armour</span>"
-                     f"<span class='shieldval'>{esc(u.save)}</span></div>")
+                     f"<span class='shieldval'>{esc(u.save)}</span>{nk}</div>")
 
     save_parts = ""
     if u.save_parts:
         save_parts = ("<div class='saveparts'>Save: "
                       + ", ".join(esc(p) for p in u.save_parts) + "</div>")
+    if u.save_melee:
+        save_parts += ("<div class='saveparts parrynote'>* Parry "
+                       "(Schild + Einhandwaffe): Total Armour im Nahkampf "
+                       f"+1 &rarr; {esc(u.save_melee)}</div>")
 
     rule_names = ""
     if u.special_rules:
@@ -1059,6 +1095,8 @@ table.stats td.mname { text-align:left; font-size:8pt; max-width:24mm; }
 .shieldlbl { font-size:5.2pt; font-weight:700; line-height:1.05;
   letter-spacing:.2px; text-transform:uppercase; text-align:center; }
 .shieldval { font-weight:800; font-size:13pt; line-height:1; margin-top:.3mm; }
+.shieldnk  { font-weight:700; font-size:6pt; line-height:1; margin-top:.4mm; }
+.parrynote { margin-top:-1.2mm; }
 .saveparts { font-size:7.5pt; color:#bcd; margin:1mm 0 2mm; }
 table.weapons { border-collapse:collapse; width:100%; margin:1.5mm 0; }
 table.weapons th, table.weapons td {

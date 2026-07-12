@@ -27,6 +27,30 @@
                 "characteristics": [
                   {"$text": "Erster Satz der Testregel, der auf der Karte landet. Zweiter Satz, der beim Kuerzen wegfallen muss.", "name": "Description"}
                 ]
+              },
+              {
+                "typeName": "Armour",
+                "name": "Testplatte",
+                "characteristics": [
+                  {"$text": "Eine erfundene Testruestung mit einem Armour Value of 5+.", "name": "Description"}
+                ]
+              },
+              {
+                "typeName": "Armour",
+                "name": "Shield",
+                "characteristics": [
+                  {"$text": "Ein erfundener Testschild. A shield improves its armour value by 1.", "name": "Description"}
+                ]
+              },
+              {
+                "typeName": "Weapon",
+                "name": "Testzweihaender",
+                "characteristics": [
+                  {"$text": "Combat", "name": "R"},
+                  {"$text": "As user", "name": "S"},
+                  {"$text": "-2", "name": "AP"},
+                  {"$text": "Two-handed", "name": "Special Rules"}
+                ]
               }
             ],
             "selections": [
@@ -67,6 +91,20 @@
                 "characteristics": [
                   {"$text": "Regular infantry", "name": "Troop Type"},
                   {"$text": "10", "name": "Unit Size"}
+                ]
+              },
+              {
+                "typeName": "Armour",
+                "name": "Testharnisch",
+                "characteristics": [
+                  {"$text": "Ein erfundener leichter Testharnisch mit einem Armour Value of 6+.", "name": "Description"}
+                ]
+              },
+              {
+                "typeName": "Armour",
+                "name": "Shield",
+                "characteristics": [
+                  {"$text": "Ein erfundener Testschild. A shield improves its armour value by 1.", "name": "Description"}
                 ]
               }
             ],
