@@ -667,8 +667,9 @@ def short_effect(text: str, n: int = 150) -> str:
 
 
 # --- Kurztext-Datenbank (rule_text.json) -------------------------------------
-# Pro Regel/Zauber eine Kurzfassung, ueberall identisch (Karte + Plan).
-# 'summaries' = von Hand gepflegt, 'learned' = automatisch gekuerzt & gemerkt.
+# NUR-Fallback fuer Regeln OHNE Text im Export (OWB, Waffen-/Universalregeln).
+# Liefert der Export einen Text, wird immer dieser angezeigt (Quelle der
+# Wahrheit ist die Liste); 'learned' waechst nicht mehr automatisch.
 RULE_TEXT_PATH = os.path.join(BASE_DIR, "rule_text.json")
 SHORT_LEN = 180
 
@@ -693,24 +694,13 @@ def save_rule_text():
 
 
 def short_text(name: str, full: str) -> str:
-    """Kurzfassung aus der DB (summaries -> learned), sonst automatisch kuerzen
-    und in 'learned' merken (damit ueberall identisch und editierbar)."""
-    global RT_DIRTY
-    if not (full and full.strip()):
-        return ""
-    summaries = RT.setdefault("summaries", {})
-    if name in summaries:
-        return summaries[name]
-    base = base_rule_name(name)
-    if base != name and base in summaries:
-        return summaries[base]
-    learned = RT.setdefault("learned", {})
-    if name in learned:
-        return learned[name]
-    auto = short_effect(full, SHORT_LEN)
-    learned[name] = auto
-    RT_DIRTY = True
-    return auto
+    """Kurzfassung einer Regel. Die Export-JSON ist die Quelle der Wahrheit:
+    liefert sie einen Text, wird IMMER dieser frisch gekuerzt angezeigt --
+    nichts wird mehr eingefroren. Nur ohne Text im Export greift die
+    Bibliothek (summaries -> learned -> Glossar)."""
+    if full and full.strip():
+        return short_effect(full, SHORT_LEN)
+    return _rule_summary(name)
 
 
 # --- Glossar (rule_glossary.json) --------------------------------------------
