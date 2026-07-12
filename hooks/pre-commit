@@ -1,0 +1,11 @@
+#!/bin/sh
+# Kein Commit ohne grüne Tests (Regel vom Nutzer).
+# Aktivieren:   git config core.hooksPath hooks
+# Notausgang:   git commit --no-verify   (nur in Ausnahmefällen!)
+echo "[pre-commit] Testsuite läuft…"
+python3 run_tests.py
+if [ $? -ne 0 ]; then
+    echo "[pre-commit] ❌ Tests rot – Commit abgebrochen."
+    exit 1
+fi
+echo "[pre-commit] ✅ Tests grün – Commit läuft."

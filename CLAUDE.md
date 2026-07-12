@@ -1,0 +1,36 @@
+# Warhammer Card Creator — Projektregeln für Claude
+
+Einheiten-Karten + Ablaufplan für "Warhammer: The Old World" aus
+NewRecruit/BattleScribe- oder Old-World-Builder-Listen (JSON).
+CLI: `generate_cards.py <liste.json>` → `output/<name>.html`, PDF via
+Browser-Druck. Browser-UI: `index.html` + `js/app.js` (Pyodide).
+
+## Randbedingungen
+
+- Repo ist **ÖFFENTLICH**: keine GW-Regeltexte in Volltext, keine
+  persönlichen Armeelisten einchecken (`lists/*.json` ist gitignored,
+  Test-Fixtures nur synthetisch mit erfundenen Namen/Texten).
+- Der `<title>` der generierten Seiten = Name der Eingabedatei — daraus
+  macht der Browser den PDF-Dateinamen-Vorschlag. Nicht ändern.
+
+## Datenfluss (Entscheidung vom Nutzer, 2026-07-12)
+
+- **Die Export-JSON ist die Quelle der Wahrheit.** Liefert sie einen
+  Regeltext, wird IMMER dieser angezeigt (frisch gekürzt via
+  `short_text`) — nichts wird gemerkt/eingefroren.
+- Die lokalen Regel-DBs (`rule_text.json`, `rule_glossary.json`) sind
+  NUR Fallback für Regeln ohne Text im Export (OWB-Listen,
+  Waffen-/Universalregeln). `rule_phases.json` ordnet Regeln den
+  Phasen im Ablaufplan zu (selbstlernend).
+- OWB-Listen: Statlines + Zauber live von tow.whfb.app (Build-ID wird
+  von der Startseite gescrapt — fragil, Fehler werden als Hinweis
+  gemeldet und die Karten kommen ohne Statline).
+
+## Tests: KEIN Commit ohne grüne Suite
+
+- `python3 run_tests.py` — Syntax, pyflakes, `node --check`,
+  Regel-DB-Struktur, Kurztext-Priorität, Ende-zu-Ende-Generierung
+  mit synthetischem Fixture (`tests/fixtures/testliste.json`).
+- Hook: `hooks/pre-commit` (aktivieren via
+  `git config core.hooksPath hooks`); CI: `.github/workflows/tests.yml`.
+- Regeln vom Nutzer: jeder Fix → Regressionstest, neue Features → Tests.

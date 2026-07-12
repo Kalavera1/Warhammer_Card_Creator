@@ -1,0 +1,113 @@
+{
+  "_comment": "Synthetische Mini-Liste NUR fuer die Testsuite (run_tests.py). Erfundene Einheiten und Regeltexte, kein GW-Material, keine persoenliche Armeeliste.",
+  "roster": {
+    "name": "Testarmee",
+    "costs": [{"name": "pts", "typeId": "points", "value": 123}],
+    "forces": [
+      {
+        "name": "Testfraktion",
+        "selections": [
+          {
+            "type": "unit",
+            "name": "Testheld",
+            "number": 1,
+            "costs": [{"name": "pts", "typeId": "points", "value": 63}],
+            "profiles": [
+              {
+                "typeName": "Unit",
+                "name": "Testheld",
+                "characteristics": [
+                  {"$text": "Regular infantry", "name": "Troop Type"},
+                  {"$text": "1", "name": "Unit Size"}
+                ]
+              },
+              {
+                "typeName": "Special Rule",
+                "name": "Testregel",
+                "characteristics": [
+                  {"$text": "Erster Satz der Testregel, der auf der Karte landet. Zweiter Satz, der beim Kuerzen wegfallen muss.", "name": "Description"}
+                ]
+              }
+            ],
+            "selections": [
+              {
+                "name": "Testheld",
+                "number": 1,
+                "costs": [{"name": "pts", "typeId": "points", "value": 0}],
+                "profiles": [
+                  {
+                    "typeName": "Model",
+                    "name": "Testheld",
+                    "characteristics": [
+                      {"$text": "4", "name": "M"},
+                      {"$text": "5", "name": "WS"},
+                      {"$text": "4", "name": "BS"},
+                      {"$text": "4", "name": "S"},
+                      {"$text": "4", "name": "T"},
+                      {"$text": "2", "name": "W"},
+                      {"$text": "5", "name": "I"},
+                      {"$text": "3", "name": "A"},
+                      {"$text": "8", "name": "Ld"}
+                    ]
+                  }
+                ]
+              }
+            ],
+            "categories": [{"name": "Characters", "primary": "true"}]
+          },
+          {
+            "type": "unit",
+            "name": "Testtruppe",
+            "number": 1,
+            "costs": [{"name": "pts", "typeId": "points", "value": 60}],
+            "profiles": [
+              {
+                "typeName": "Unit",
+                "name": "Testtruppe",
+                "characteristics": [
+                  {"$text": "Regular infantry", "name": "Troop Type"},
+                  {"$text": "10", "name": "Unit Size"}
+                ]
+              }
+            ],
+            "selections": [
+              {
+                "name": "Testkrieger",
+                "number": 10,
+                "costs": [{"name": "pts", "typeId": "points", "value": 6}],
+                "profiles": [
+                  {
+                    "typeName": "Model",
+                    "name": "Testkrieger",
+                    "characteristics": [
+                      {"$text": "4", "name": "M"},
+                      {"$text": "3", "name": "WS"},
+                      {"$text": "3", "name": "BS"},
+                      {"$text": "3", "name": "S"},
+                      {"$text": "3", "name": "T"},
+                      {"$text": "1", "name": "W"},
+                      {"$text": "3", "name": "I"},
+                      {"$text": "1", "name": "A"},
+                      {"$text": "7", "name": "Ld"}
+                    ]
+                  },
+                  {
+                    "typeName": "Weapon",
+                    "name": "Testklinge",
+                    "characteristics": [
+                      {"$text": "Combat", "name": "R"},
+                      {"$text": "As user", "name": "S"},
+                      {"$text": "-", "name": "AP"},
+                      {"$text": "Testwucht", "name": "Special Rules"}
+                    ]
+                  }
+                ]
+              }
+            ],
+            "categories": [{"name": "Core", "primary": "true"}]
+          }
+        ]
+      }
+    ]
+  }
+}

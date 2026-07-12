@@ -152,7 +152,6 @@ def compute_save(armour_items):
     Rueckgabe: (save_str, parts) wobei parts eine Liste lesbarer Strings ist.
     """
     base = None            # bestes (niedrigstes) Basisprofil
-    base_name = None
     improve = 0            # Summe der Verbesserungen (Schild, Barding ...)
     fixed = None           # feste Werte (z.B. Master Rune of Gromril)
     parts = []
@@ -182,7 +181,7 @@ def compute_save(armour_items):
             parts.append(f"{name} (−1)" if step == 1 else f"{name} (−{step})")
         elif val is not None:
             if base is None or val < base:
-                base, base_name = val, name
+                base = val
             parts.append(f"{name}{label_val}")
         else:
             # Ruestungsteil ohne erkennbaren Wert trotzdem auflisten
@@ -896,7 +895,6 @@ def render_weapons(u: Unit) -> str:
         return ""
     rows = ""
     for w in u.weapons:
-        rules = "" if w.rules in ("-", "", None) else f" <span class='wr'>{esc(w.rules)}</span>"
         rows += (f"<tr><td class='wn'>{esc(w.name)}</td><td>{esc(w.r)}</td>"
                  f"<td>{esc(w.s)}</td><td>{esc(w.ap)}</td>"
                  f"<td class='wrules'>{esc(w.rules) if w.rules not in ('-','') else ''}</td></tr>")
