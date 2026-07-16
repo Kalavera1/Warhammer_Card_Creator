@@ -92,6 +92,7 @@ class Unit:
     armour_items: list = field(default_factory=list)  # (name, desc)
     save: str = ""
     save_melee: str = ""   # Parry: verbesserter Wurf im Nahkampf, z.B. "4+"
+    has_mount: bool = False  # Reittier gewaehlt -> Modell gilt nicht als zu Fuss
     save_parts: list = field(default_factory=list)    # menschenlesbare Teile
     special_rules: list = field(default_factory=list)  # NamedText
     magic_items: list = field(default_factory=list)    # NamedText
@@ -200,15 +201,21 @@ _TWO_HANDED_RE = re.compile(r"two.?handed|requires\s+two\s+hands", re.I)
 
 
 def parry_save(u: Unit) -> str:
-    """Parry: Fusstruppen mit Schild + Einhandwaffe (z.B. Handwaffe) haben
-    im Nahkampf eine Ruestungsstufe mehr. Zweihandwaffen erlauben das nicht.
-    Rueckgabe: verbesserter Wurf ("4+") oder "" wenn kein Parry moeglich."""
+    """Parry: NUR Infanterie/leichte Infanterie zu Fuss mit Schild +
+    Einhandwaffe (z.B. Handwaffe) hat im Nahkampf eine Ruestungsstufe mehr.
+    Beritten (Reittier gewaehlt), monstroese Infanterie und Zweihandwaffen:
+    kein Parry. Rueckgabe: verbesserter Wurf ("4+") oder ""."""
     if not u.save or not u.save.endswith("+"):
         return ""
     # Feste Werte ("cannot be improved") duerfen nicht verbessert werden
     if any("fest)" in p for p in u.save_parts):
         return ""
-    if "infantry" not in (u.troop_type or "").lower():
+    tt = (u.troop_type or "").lower()
+    if "infantry" not in tt or "monstrous" in tt:
+        return ""
+    # Charakter mit Reittier: Truppentyp im Export bleibt "infantry",
+    # aber das Modell kaempft nicht mehr zu Fuss -> kein Parry.
+    if u.has_mount:
         return ""
     if not any("shield" in (n or "").lower() for n, _ in u.armour_items):
         return ""
@@ -238,6 +245,9 @@ def build_unit(sel: dict) -> Unit:
         stype = s.get("type")
         sname = s.get("name", "")
         snum = int(s.get("number", 1) or 1)
+
+        if stype == "mount":
+            u.has_mount = True
 
         # Kommandogruppe / Champion
         if stype in ("crew", "upgrade") and sname in (
@@ -507,6 +517,7 @@ def _build_owb_unit(o: dict, category: str, idx, ordered, lore_spells=None) -> U
     for m in _owb_active(o.get("mounts")):
         nm = m.get("name_en") or m.get("name") or ""
         if nm and "foot" not in nm.lower() and "fuss" not in nm.lower():
+            u.has_mount = True
             mp = _match_profile(nm, idx, ordered)
             if mp:
                 _add_profile_models(u, mp, nm)
@@ -696,18 +707,20 @@ def short_effect(text: str, n: int = 150) -> str:
 
 
 # --- Kurztext-Datenbank (rule_text.json) -------------------------------------
-# NUR-Fallback fuer Regeln OHNE Text im Export (OWB, Waffen-/Universalregeln).
-# Liefert der Export einen Text, wird immer dieser angezeigt (Quelle der
-# Wahrheit ist die Liste); 'learned' waechst nicht mehr automatisch.
+# 'overrides' = vom Nutzer kuratierte Kartentexte (max. 2 Zeilen), gewinnen
+# IMMER — auch gegen den Export-Text, der sonst mitten im Satz abgeschnitten
+# wuerde. 'summaries'/'learned' sind NUR-Fallback fuer Regeln OHNE Text im
+# Export (OWB, Waffen-/Universalregeln); 'learned' waechst nicht mehr.
 RULE_TEXT_PATH = os.path.join(BASE_DIR, "rule_text.json")
 SHORT_LEN = 180
+OVERRIDE_MAX_LEN = 150   # 2 Zeilen auf der Kartenrueckseite (7.6pt, 136mm)
 
 
 def load_rule_text():
     if os.path.exists(RULE_TEXT_PATH):
         with open(RULE_TEXT_PATH, encoding="utf-8") as fh:
             return json.load(fh)
-    return {"summaries": {}, "learned": {}}
+    return {"summaries": {}, "learned": {}, "overrides": {}}
 
 
 RT = load_rule_text()
@@ -722,11 +735,27 @@ def save_rule_text():
         json.dump(out, fh, ensure_ascii=False, indent=2)
 
 
+def override_text(name: str) -> str:
+    """Vom Nutzer kuratierter Kartentext (rule_text.json 'overrides',
+    mit Klammer-Fallback) oder ''."""
+    ov = RT.get("overrides", {})
+    if name in ov:
+        return ov[name]
+    base = base_rule_name(name)
+    if base != name and base in ov:
+        return ov[base]
+    return ""
+
+
 def short_text(name: str, full: str) -> str:
-    """Kurzfassung einer Regel. Die Export-JSON ist die Quelle der Wahrheit:
-    liefert sie einen Text, wird IMMER dieser frisch gekuerzt angezeigt --
-    nichts wird mehr eingefroren. Nur ohne Text im Export greift die
-    Bibliothek (summaries -> learned -> Glossar)."""
+    """Kurzfassung einer Regel. Ein kuratierter 'overrides'-Text gewinnt
+    immer (bewusste Nutzer-Entscheidung, passt in 2 Zeilen). Sonst ist die
+    Export-JSON die Quelle der Wahrheit: liefert sie einen Text, wird dieser
+    frisch gekuerzt angezeigt -- nichts wird eingefroren. Nur ohne Export-Text
+    greift die Bibliothek (summaries -> learned -> Glossar)."""
+    ov = override_text(name)
+    if ov:
+        return ov
     if full and full.strip():
         return short_effect(full, SHORT_LEN)
     return _rule_summary(name)

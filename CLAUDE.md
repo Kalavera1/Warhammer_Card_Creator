@@ -13,10 +13,16 @@ Browser-Druck. Browser-UI: `index.html` + `js/app.js` (Pyodide).
 - Der `<title>` der generierten Seiten = Name der Eingabedatei — daraus
   macht der Browser den PDF-Dateinamen-Vorschlag. Nicht ändern.
 
-## Datenfluss (Entscheidung vom Nutzer, 2026-07-12)
+## Datenfluss (Entscheidungen vom Nutzer, 2026-07-12 / 2026-07-16)
 
-- **Die Export-JSON ist die Quelle der Wahrheit.** Liefert sie einen
-  Regeltext, wird IMMER dieser angezeigt (frisch gekürzt via
+- **Kuratierte Kartentexte gewinnen immer:** `rule_text.json`
+  → `overrides` enthält vom Nutzer formulierte Kurzfassungen
+  (max. 150 Zeichen ≙ 2 Zeilen auf der Rückseite, Test erzwingt das).
+  Sie ersetzen den Export-Text, der sonst mitten im Satz mit „…"
+  abgeschnitten würde. Schlüssel = Regel-/Zauber-Name ohne
+  (X)-Klammer. Neue Langtexte → neuen Override ergänzen.
+- Sonst: **die Export-JSON ist die Quelle der Wahrheit.** Liefert sie
+  einen Regeltext, wird dieser angezeigt (frisch gekürzt via
   `short_text`) — nichts wird gemerkt/eingefroren.
 - Die lokalen Regel-DBs (`rule_text.json`, `rule_glossary.json`) sind
   NUR Fallback für Regeln ohne Text im Export (OWB-Listen,

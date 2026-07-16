@@ -81,6 +81,94 @@
           },
           {
             "type": "unit",
+            "name": "Testreiter",
+            "number": 1,
+            "costs": [{"name": "pts", "typeId": "points", "value": 0}],
+            "profiles": [
+              {
+                "typeName": "Unit",
+                "name": "Testreiter",
+                "characteristics": [
+                  {"$text": "Regular infantry", "name": "Troop Type"},
+                  {"$text": "1", "name": "Unit Size"}
+                ]
+              },
+              {
+                "typeName": "Armour",
+                "name": "Testpanzer",
+                "characteristics": [
+                  {"$text": "Ein erfundener Testpanzer mit einem Armour Value of 4+.", "name": "Description"}
+                ]
+              },
+              {
+                "typeName": "Armour",
+                "name": "Shield",
+                "characteristics": [
+                  {"$text": "Ein erfundener Testschild. A shield improves its armour value by 1.", "name": "Description"}
+                ]
+              },
+              {
+                "typeName": "Weapon",
+                "name": "Testsaebel",
+                "characteristics": [
+                  {"$text": "Combat", "name": "R"},
+                  {"$text": "As user", "name": "S"},
+                  {"$text": "-", "name": "AP"},
+                  {"$text": "", "name": "Special Rules"}
+                ]
+              }
+            ],
+            "selections": [
+              {
+                "name": "Testreiter",
+                "number": 1,
+                "costs": [{"name": "pts", "typeId": "points", "value": 0}],
+                "profiles": [
+                  {
+                    "typeName": "Model",
+                    "name": "Testreiter",
+                    "characteristics": [
+                      {"$text": "4", "name": "M"},
+                      {"$text": "4", "name": "WS"},
+                      {"$text": "4", "name": "BS"},
+                      {"$text": "4", "name": "S"},
+                      {"$text": "4", "name": "T"},
+                      {"$text": "2", "name": "W"},
+                      {"$text": "4", "name": "I"},
+                      {"$text": "2", "name": "A"},
+                      {"$text": "8", "name": "Ld"}
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "mount",
+                "name": "Testpferd",
+                "number": 1,
+                "costs": [{"name": "pts", "typeId": "points", "value": 0}],
+                "profiles": [
+                  {
+                    "typeName": "Model",
+                    "name": "Testpferd",
+                    "characteristics": [
+                      {"$text": "8", "name": "M"},
+                      {"$text": "3", "name": "WS"},
+                      {"$text": "-", "name": "BS"},
+                      {"$text": "3", "name": "S"},
+                      {"$text": "-", "name": "T"},
+                      {"$text": "-", "name": "W"},
+                      {"$text": "3", "name": "I"},
+                      {"$text": "1", "name": "A"},
+                      {"$text": "-", "name": "Ld"}
+                    ]
+                  }
+                ]
+              }
+            ],
+            "categories": [{"name": "Characters", "primary": "true"}]
+          },
+          {
+            "type": "unit",
             "name": "Testtruppe",
             "number": 1,
             "costs": [{"name": "pts", "typeId": "points", "value": 60}],

@@ -71,9 +71,16 @@ def t_rule_data():
     if not rp["sequence"]:
         raise RuntimeError("rule_phases.json: sequence leer")
     rt = json.load(open("rule_text.json", encoding="utf-8"))
-    for key in ("summaries", "learned"):
+    for key in ("summaries", "learned", "overrides"):
         if not isinstance(rt.get(key), dict):
             raise RuntimeError(f"rule_text.json: '{key}' fehlt/kein Objekt")
+    # Overrides sind kuratierte Kartentexte: muessen in 2 Zeilen passen.
+    import generate_cards as gc
+    for name, text in rt["overrides"].items():
+        if len(text) > gc.OVERRIDE_MAX_LEN:
+            raise RuntimeError(
+                f"override '{name}' zu lang ({len(text)} > "
+                f"{gc.OVERRIDE_MAX_LEN} Zeichen, passt nicht in 2 Zeilen)")
     gl = json.load(open("rule_glossary.json", encoding="utf-8"))
     if not isinstance(gl.get("glossary"), dict) or not gl["glossary"]:
         raise RuntimeError("rule_glossary.json: 'glossary' fehlt/leer")
@@ -81,12 +88,14 @@ def t_rule_data():
 
 # ── 3. Kurztext-Priorität ────────────────────────────────────────────────────
 def t_short_text_priority():
-    """Regressionstest: Die Export-JSON ist Quelle der Wahrheit. Ein Text aus
-    dem Export gewinnt IMMER gegen die Bibliothek (nichts friert ein);
-    ohne Export-Text greifen summaries -> learned -> Glossar."""
+    """Regressionstest: Ein kuratierter 'overrides'-Text gewinnt IMMER
+    (auch gegen den Export, inkl. (X)-Klammer-Fallback). Sonst ist die
+    Export-JSON Quelle der Wahrheit (nichts friert ein); ohne Export-Text
+    greifen summaries -> learned -> Glossar."""
     import generate_cards as gc
     gc.RT.setdefault("learned", {})["__TEST__"] = "Alte eingefrorene Fassung."
     gc.RT.setdefault("summaries", {})["__TEST2__"] = "Handgepflegte Fassung."
+    gc.RT.setdefault("overrides", {})["__TEST3__"] = "Kuratierte Kartenfassung."
     try:
         got = gc.short_text("__TEST__", "Neuer Text aus dem Export. Rest.")
         if got != "Neuer Text aus dem Export.":
@@ -95,12 +104,42 @@ def t_short_text_priority():
             raise RuntimeError("learned-Fallback kaputt")
         if gc.short_text("__TEST2__", "") != "Handgepflegte Fassung.":
             raise RuntimeError("summaries-Fallback kaputt")
+        got = gc.short_text("__TEST3__", "Langer Text aus dem Export. Rest.")
+        if got != "Kuratierte Kartenfassung.":
+            raise RuntimeError(f"override gewinnt nicht gegen Export: {got!r}")
+        got = gc.short_text("__TEST3__ (-2)", "Text aus dem Export. Rest.")
+        if got != "Kuratierte Kartenfassung.":
+            raise RuntimeError(f"override-Klammer-Fallback kaputt: {got!r}")
         glos_name = next(iter(gc.GLOSSARY))
         if not gc.short_text(glos_name, ""):
             raise RuntimeError("Glossar-Fallback kaputt")
     finally:
         gc.RT["learned"].pop("__TEST__", None)
         gc.RT["summaries"].pop("__TEST2__", None)
+        gc.RT["overrides"].pop("__TEST3__", None)
+
+
+# ── 3b. Parry: nur Infanterie zu Fuß ────────────────────────────────────────
+def t_parry_rules():
+    """Regressionstest: Parry (*) nur für (leichte) Infanterie zu Fuß mit
+    Schild + Einhandwaffe. Reittier oder monströse Infanterie -> kein Parry."""
+    import generate_cards as gc
+
+    def unit(tt, mount=False):
+        u = gc.Unit(name="T", troop_type=tt, save="4+", has_mount=mount)
+        u.armour_items = [("Shield", "")]
+        return u
+
+    if gc.parry_save(unit("Regular infantry")) != "3+":
+        raise RuntimeError("Parry für Infanterie zu Fuß kaputt")
+    if gc.parry_save(unit("Light infantry")) != "3+":
+        raise RuntimeError("Parry für leichte Infanterie kaputt")
+    if gc.parry_save(unit("Regular infantry", mount=True)) != "":
+        raise RuntimeError("Parry trotz Reittier")
+    if gc.parry_save(unit("Monstrous infantry")) != "":
+        raise RuntimeError("Parry trotz monströser Infanterie")
+    if gc.parry_save(unit("Heavy cavalry")) != "":
+        raise RuntimeError("Parry trotz Kavallerie")
 
 
 # ── 4. Ende-zu-Ende: Kartengenerierung ───────────────────────────────────────
@@ -137,6 +176,12 @@ def t_generate_cards():
             raise RuntimeError("Parry-Fußnote fehlt")
         if "(3+)*" in html:
             raise RuntimeError("Parry fälschlich trotz Zweihandwaffe (Testheld)")
+        # Testreiter (Schild + Einhandwaffe, ABER Reittier, 4+ -1 = 3+):
+        # beritten kämpft nicht zu Fuß -> kein Parry-Bonus (2+)*.
+        if "(2+)*" in html:
+            raise RuntimeError("Parry fälschlich trotz Reittier (Testreiter)")
+        if "Testpferd" not in html:
+            raise RuntimeError("Reittier-Statline (Testpferd) fehlt")
         plan_path = os.path.join(td, "testliste_plan.html")
         if not os.path.exists(plan_path):
             raise RuntimeError("Ablaufplan fehlt")
@@ -167,6 +212,7 @@ def main():
     check("regel-daten", t_rule_data)
     print("[3] Kurztexte")
     check("kurztext-prioritaet", t_short_text_priority)
+    check("parry-nur-fussvolk", t_parry_rules)
     print("[4] Generierung")
     check("karten-generierung", t_generate_cards)
     check("schnellreferenz", t_reference)
