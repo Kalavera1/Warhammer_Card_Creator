@@ -1238,8 +1238,7 @@ table.weapons td.wrules { font-size:7pt; }
 # Hinweis-Banner (nur Bildschirm, nicht im Druck): Bedienung der Karten.
 HINT_HTML = """<div class="hint">Tipp: Klick auf eine Regel/einen Zauber auf
 einer R&uuml;ckseite blendet den Block f&uuml;r den Druck aus (durchgestrichen;
-nochmal klicken holt ihn zur&uuml;ck). Karten mit viel Inhalt wachsen bis
-140&nbsp;mm in die H&ouml;he, erst danach wird die Schrift verkleinert.</div>"""
+nochmal klicken holt ihn zur&uuml;ck).</div>"""
 
 # Passt jede Karte an ihren Inhalt an: erst waechst die Karte in der Hoehe
 # (105 -> max. 140 mm; Vorder- und Rueckseite derselben Einheit bekommen fuer
