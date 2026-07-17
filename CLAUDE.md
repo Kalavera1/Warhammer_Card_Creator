@@ -3,7 +3,10 @@
 Einheiten-Karten + Ablaufplan für "Warhammer: The Old World" aus
 NewRecruit/BattleScribe- oder Old-World-Builder-Listen (JSON).
 CLI: `generate_cards.py <liste.json>` → `output/<name>.html`, PDF via
-Browser-Druck. Browser-UI: `index.html` + `js/app.js` (Pyodide).
+Browser-Druck; `--zauber` → Zauberkarten aller Lehren (live von
+tow.whfb.app). Browser-UI: `index.html` + `js/app.js` (Pyodide).
+Karten: Klick auf Regel/Zauber einer Rückseite = vom Druck ausnehmen;
+Höhe wächst 105→140 mm (Duplex-Paar gleich hoch), dann erst Schrift-Shrink.
 
 ## Randbedingungen
 

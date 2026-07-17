@@ -54,6 +54,24 @@ Zum Drucken/PDF die Datei im Browser
 Reihenfolge der Seiten: Blatt 1 = 2 Vorderseiten, Blatt 2 = die passenden
 2 Rückseiten usw., damit Front/Back beim Duplexdruck zusammenpassen.
 
+### Zauberkarten – alle Lehren (`--zauber`)
+
+`python3 generate_cards.py --zauber` (oder der Button **„Zauberkarten (alle
+Lehren)"** in der Web-App) erzeugt **`Zauberkarten.html`**: eine Referenzkarte
+pro Zauberlehre (Battle Magic, Elementalism, alle Fraktions-Lores – aktuell
+29), jeweils mit allen Zaubern (Signature + 1–6) in Würfel-Reihenfolge und
+**vollem Regeltext**, live von <https://tow.whfb.app>.
+
+### Auswählen, was gedruckt wird & flexible Kartenhöhe
+
+- **Klick auf eine Regel/einen Zauber** auf einer Rückseite (auch auf den
+  Zauberkarten) blendet den Block für den Druck aus – am Bildschirm bleibt er
+  durchgestrichen sichtbar, nochmal klicken holt ihn zurück. So druckt ein
+  Magier z. B. nur die gewählten 2 von 7 Zaubern.
+- Karten mit viel Inhalt **wachsen in der Höhe mit** (105 → max. 140 mm;
+  Vorder- und Rückseite derselben Einheit bleiben für den Duplexdruck gleich
+  hoch). Erst wenn auch das nicht reicht, wird die Schrift verkleinert.
+
 ## Karteninhalt
 
 **Vorderseite (kompakt):**

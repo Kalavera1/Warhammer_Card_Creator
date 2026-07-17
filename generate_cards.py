@@ -985,7 +985,19 @@ def render_weapons(u: Unit) -> str:
             f"<th>AP</th><th>Sonderregeln</th></tr>{rows}</table>")
 
 
-def render_front(u: Unit) -> str:
+def _spell_block(s: Spell, effect_html: str) -> str:
+    """Ein Zauber-Block (Rueckseite/Zauberkarten): Nummer, Name, Meta, Text."""
+    info = " &middot; ".join(filter(None, [
+        f"GW {esc(s.casting)}" if s.casting else "",
+        esc(s.type), esc(s.rng)]))
+    num = (f"<span class='spellnum'>{esc(s.number)}</span> "
+           if s.number else "")
+    return (f"<div class='rule spell'><span class='rn'>{num}{esc(s.name)}</span>"
+            f"<span class='spellmeta'>{info}</span>"
+            f"<div class='rt'>{effect_html}</div></div>")
+
+
+def render_front(u: Unit, idx: int = -1) -> str:
     meta = []
     if u.troop_type:
         meta.append(esc(u.troop_type))
@@ -1033,7 +1045,7 @@ def render_front(u: Unit) -> str:
                   + ", ".join(esc(s.name) for s in u.spells) + "</div>")
 
     return f"""
-    <div class="card front"><div class="fit">
+    <div class="card front" data-u="{idx}"><div class="fit">
       <div class="cardhead">
         <div class="title">{esc(u.name)}</div>
         <div class="pts">{u.points} Pkt</div>
@@ -1052,7 +1064,7 @@ def render_front(u: Unit) -> str:
     </div></div>"""
 
 
-def render_back(u: Unit) -> str:
+def render_back(u: Unit, idx: int = -1) -> str:
     blocks = ""
     for r in u.special_rules:
         if r.text:
@@ -1067,14 +1079,7 @@ def render_back(u: Unit) -> str:
                        f"<span class='rt'>{hl(short_text(i.name, i.text))}</span></div>")
 
     for s in u.spells:
-        info = " &middot; ".join(filter(None, [
-            f"GW {esc(s.casting)}" if s.casting else "",
-            esc(s.type), esc(s.rng)]))
-        num = (f"<span class='spellnum'>{esc(s.number)}</span> "
-               if s.number else "")
-        blocks += (f"<div class='rule spell'><span class='rn'>{num}{esc(s.name)}</span>"
-                   f"<span class='spellmeta'>{info}</span>"
-                   f"<div class='rt'>{hl(short_text(s.name, s.effect))}</div></div>")
+        blocks += _spell_block(s, hl(short_text(s.name, s.effect)))
 
     # Auffang-Eimer: unbekannte Typen, gruppiert unter ihrer typeName-Ueberschrift
     last_group = None
@@ -1106,7 +1111,7 @@ def render_back(u: Unit) -> str:
         blocks = "<div class='rule'><i>Keine Sonderregeln</i></div>"
 
     return f"""
-    <div class="card back"><div class="fit">
+    <div class="card back" data-u="{idx}"><div class="fit">
       <div class="cardhead"><div class="title">{esc(u.name)}</div>
         <div class="pts back">Regeln</div></div>
       <div class="rules">{blocks}</div>
@@ -1170,6 +1175,15 @@ table.weapons td.wrules { font-size:7pt; }
 .rule.wpn .rn { color:#f0b27a; }
 .rule.wpn .lookup { font-size:7pt; color:#9ab; font-style:italic; }
 .rt .hl { color:#ffdf6b; font-weight:700; }
+/* Klick auf einen Block: fuer den Druck ausblenden (Bildschirm: durchgestrichen) */
+.card .rules .rule { cursor:pointer; }
+.rule.skip .rt, .rule.skip .spellmeta { display:none; }
+.rule.skip .rn { text-decoration:line-through; opacity:.45; }
+@media print { .rule.skip { display:none; } }
+/* Bedien-Hinweis: nur am Bildschirm */
+.hint { max-width:148mm; margin:4mm auto 0; padding:2mm 3mm; font-size:9pt;
+  color:#345; background:#f4f0e2; border:1px solid #cbbf9a; border-radius:4px; }
+@media print { .hint { display:none; } }
 .grouphd { font-weight:700; font-size:7.2pt; letter-spacing:.5px;
   text-transform:uppercase; color:#bcd; border-top:1px solid #4a7a8c;
   margin:1.6mm 0 1mm; padding-top:1mm; break-after:avoid; }
@@ -1221,26 +1235,67 @@ table.weapons td.wrules { font-size:7pt; }
 """
 
 
-# Verkleinert bei Bedarf den Inhalt jeder Karte, damit nichts abgeschnitten wird.
+# Hinweis-Banner (nur Bildschirm, nicht im Druck): Bedienung der Karten.
+HINT_HTML = """<div class="hint">Tipp: Klick auf eine Regel/einen Zauber auf
+einer R&uuml;ckseite blendet den Block f&uuml;r den Druck aus (durchgestrichen;
+nochmal klicken holt ihn zur&uuml;ck). Karten mit viel Inhalt wachsen bis
+140&nbsp;mm in die H&ouml;he, erst danach wird die Schrift verkleinert.</div>"""
+
+# Passt jede Karte an ihren Inhalt an: erst waechst die Karte in der Hoehe
+# (105 -> max. 140 mm; Vorder- und Rueckseite derselben Einheit bekommen fuer
+# den Duplexdruck dieselbe Hoehe), erst wenn das nicht reicht, wird der Inhalt
+# herunterskaliert. Klick auf einen Regel-/Zauberblock einer Rueckseite
+# markiert ihn als 'skip' -> im Druck ausgeblendet.
 FIT_JS = """
+var MM = 96/25.4, MIN_H = 105*MM, MAX_H = 140*MM;
 function fitCards(){
-  document.querySelectorAll('.card').forEach(function(card){
+  var cards = document.querySelectorAll('.card');
+  var need = {};
+  cards.forEach(function(card){
     var fit = card.querySelector('.fit'); if(!fit) return;
     fit.style.transform=''; fit.style.width='';
+    // Rueckseite IMMER einspaltig (2 Spalten waeren zu klein zum Lesen).
+    var rules=card.querySelector('.rules');
+    if(rules) rules.style.columnCount='1';
+    var u = card.getAttribute('data-u');
+    if(u===null) return;
+    card.style.height='';
+    var cs=getComputedStyle(card);
+    var pad=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
+    var h=fit.scrollHeight+pad+2;
+    if(!(u in need) || h>need[u]) need[u]=h;
+  });
+  cards.forEach(function(card){
+    var u = card.getAttribute('data-u');
+    if(u===null || !(u in need)) return;
+    card.style.height=Math.min(Math.max(need[u], MIN_H), MAX_H)+'px';
+  });
+  cards.forEach(function(card){
+    var fit = card.querySelector('.fit'); if(!fit) return;
     var cs=getComputedStyle(card);
     var availH=card.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
     var availW=card.clientWidth  - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    // Rueckseite IMMER einspaltig (2 Spalten waeren zu klein zum Lesen).
-    // Passt der Inhalt nicht, wird nur die Schrift herunterskaliert.
-    var rules=card.querySelector('.rules');
-    if(rules) rules.style.columnCount='1';
     var k=Math.min(availH/fit.scrollHeight, availW/fit.scrollWidth, 1);
-    if(k<1){ fit.style.transform='scale('+k.toFixed(3)+')';
-             fit.style.width=(100/k)+'%'; }
+    // Rundungstoleranz: minimale Ueberstaende nicht skalieren
+    if(k<0.995){ fit.style.transform='scale('+k.toFixed(3)+')';
+                 fit.style.width=(100/k)+'%'; }
   });
 }
+document.addEventListener('click', function(e){
+  var r = e.target && e.target.closest ? e.target.closest('.card .rules .rule') : null;
+  if(!r) return;
+  r.classList.toggle('skip');
+  fitCards();
+});
+function setPrintMode(on){
+  document.querySelectorAll('.rule.skip').forEach(function(el){
+    el.style.display = on ? 'none' : '';
+  });
+  fitCards();
+}
 window.addEventListener('load', fitCards);
-window.addEventListener('beforeprint', fitCards);
+window.addEventListener('beforeprint', function(){ setPrintMode(true); });
+window.addEventListener('afterprint', function(){ setPrintMode(false); });
 """
 
 
@@ -1391,6 +1446,57 @@ def render_reference_document() -> str:
 </body></html>"""
 
 
+# --- Zauberkarten: alle Lehren als Standard-Referenzkarten --------------------
+def render_spell_lore_card(lore_name, spells, idx) -> str:
+    """Eine Karte pro Zauberlehre: alle Zauber (Signature + 6) mit VOLLEM
+    Text von tow.whfb.app. Bloecke sind anklickbar (skip -> nicht drucken)."""
+    blocks = "".join(_spell_block(s, hl(s.effect)) for s in spells)
+    return f"""
+    <div class="card back spellref" data-u="L{idx}"><div class="fit">
+      <div class="cardhead"><div class="title">{esc(lore_name)}</div>
+        <div class="pts back">Zauber</div></div>
+      <div class="rules">{blocks}</div>
+    </div></div>"""
+
+
+def render_spell_reference(lores, doc_title="Zauberkarten") -> str:
+    """Referenzkarten fuer alle Zauberlehren. 'lores' = Liste von
+    (Lehren-Name, tow-Zauberliste wie von fetch_owb_lore_spells).
+    Wird von CLI (--zauber) und Browser (Button) genutzt."""
+    cards = []
+    for name, spell_list in lores:
+        spells = _lore_spell_objects(spell_list)
+        if spells:
+            cards.append(render_spell_lore_card(name, spells, len(cards)))
+    pages = ""
+    for i in range(0, len(cards), 2):
+        pages += f'<div class="page">{"".join(cards[i:i + 2])}</div>'
+    return f"""<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8">
+<title>{esc(doc_title)}</title>
+<style>{CSS}</style></head>
+<body>
+{HINT_HTML}
+{pages}
+<script>{FIT_JS}</script>
+</body></html>"""
+
+
+def fetch_all_magic_lores():
+    """CLI-Netzwerkpfad: Index aller Zauberlehren + deren Zauber live von
+    tow.whfb.app -> [(Name, Zauberliste)]."""
+    lores = _tow_pageprops("cards").get("magicLores", []) or []
+    out = []
+    for lo in lores:
+        f = lo.get("fields", {}) or {}
+        name, slug = f.get("name"), f.get("slug")
+        if not slug:
+            continue
+        print(f"    Lore '{name or slug}' ...")
+        out.append((name or slug, fetch_owb_lore_spells(slug)))
+    return out
+
+
 def render_document(army_name, total, units, doc_title=None) -> str:
     # 2 Karten pro A4-Blatt. Pro Paar: ein Blatt mit beiden Vorderseiten,
     # danach ein Blatt mit den beiden Rueckseiten in gleicher Position.
@@ -1398,8 +1504,8 @@ def render_document(army_name, total, units, doc_title=None) -> str:
     pages = ""
     for i in range(0, len(units), 2):
         pair = units[i:i + 2]
-        fronts = "".join(render_front(u) for u in pair)
-        backs = "".join(render_back(u) for u in pair)
+        fronts = "".join(render_front(u, i + j) for j, u in enumerate(pair))
+        backs = "".join(render_back(u, i + j) for j, u in enumerate(pair))
         pages += f'<div class="page">{fronts}</div>'
         pages += f'<div class="page">{backs}</div>'
     return f"""<!DOCTYPE html>
@@ -1407,6 +1513,7 @@ def render_document(army_name, total, units, doc_title=None) -> str:
 <title>{esc(doc_title or f"{army_name} – Unit Cards ({total} Pkt)")}</title>
 <style>{CSS}</style></head>
 <body>
+{HINT_HTML}
 {pages}
 <script>{FIT_JS}</script>
 </body></html>"""
@@ -1471,7 +1578,17 @@ def main():
     outdir = OUTPUT_DIR
     os.makedirs(outdir, exist_ok=True)
     os.makedirs(DEFAULT_INPUT_DIR, exist_ok=True)
-    files = collect_lists([a for a in sys.argv[1:] if a])
+    args = [a for a in sys.argv[1:] if a]
+    # --zauber: Referenzkarten fuer ALLE Zauberlehren (live von tow.whfb.app)
+    if any(a in ("--zauber", "--spells") for a in args):
+        print("Zauberkarten: hole alle Lehren live von tow.whfb.app ...")
+        lores = fetch_all_magic_lores()
+        out = os.path.join(outdir, "Zauberkarten.html")
+        with open(out, "w", encoding="utf-8") as fh:
+            fh.write(render_spell_reference(lores))
+        print(f"Zauberkarten  ->  {out}")
+        return
+    files = collect_lists(args)
     if not files:
         print(f"Keine JSON-Liste gefunden. Lege deine NewRecruit-Exporte in:"
               f"\n  {DEFAULT_INPUT_DIR}\nund starte erneut.")

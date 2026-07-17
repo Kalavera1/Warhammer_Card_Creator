@@ -60,6 +60,18 @@ def t_js_syntax():
                        capture_output=True, text=True)
     if r.returncode:
         raise RuntimeError(r.stderr.strip())
+    # Das in die Karten eingebettete Skript (FIT_JS) ebenfalls prüfen.
+    import generate_cards as gc
+    with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as fh:
+        fh.write(gc.FIT_JS)
+        tmp = fh.name
+    try:
+        r = subprocess.run([node, "--check", tmp],
+                           capture_output=True, text=True)
+        if r.returncode:
+            raise RuntimeError("FIT_JS: " + r.stderr.strip())
+    finally:
+        os.unlink(tmp)
 
 
 # ── 2. Regel-Datenbanken ─────────────────────────────────────────────────────
@@ -224,6 +236,11 @@ def t_generate_cards():
             raise RuntimeError("Parry fälschlich trotz Reittier (Testreiter)")
         if "Testpferd" not in html:
             raise RuntimeError("Reittier-Statline (Testpferd) fehlt")
+        # Flexible Kartenhöhe + Druck-Auswahl: data-u-Paare und skip-CSS
+        if 'data-u="0"' not in html or "MAX_H" not in html:
+            raise RuntimeError("data-u/Höhen-Logik fehlt in den Karten")
+        if ".rule.skip" not in html:
+            raise RuntimeError("skip-CSS (Zauber-/Regelauswahl) fehlt")
         plan_path = os.path.join(td, "testliste_plan.html")
         if not os.path.exists(plan_path):
             raise RuntimeError("Ablaufplan fehlt")
@@ -240,6 +257,28 @@ def t_reference():
     html = gc.render_reference_document()
     if "Schnellreferenz" not in html or "<title>" not in html:
         raise RuntimeError("Schnellreferenz-Dokument unvollständig")
+
+
+def t_spell_reference():
+    """Zauberkarten (alle Lehren): synthetische tow-Daten -> Karten mit
+    vollem Zaubertext, anklickbaren Blöcken und flexibler Höhe (data-u).
+    KEIN Netzwerkzugriff im Test."""
+    import generate_cards as gc
+    body = {"nodeType": "document", "content": [
+        {"nodeType": "text", "value":
+         "Type Testtyp Casting Value 8+ Range 18\" "
+         "Der Testzauber trifft die Zieleinheit mit D6 Testtreffern."}]}
+    lore = [{"fields": {"name": "Testblitz", "type": "Signature Spell",
+                        "castingValue": 8, "range": "18\"", "body": body}},
+            {"fields": {"name": "Testwelle", "type": "3",
+                        "castingValue": 10, "range": "24\"", "body": body}}]
+    html = gc.render_spell_reference([("Testlehre", lore)])
+    for needle in ("Testlehre", "Testblitz", "Testwelle",
+                   "Testtreffern", "data-u=\"L0\"", "class=\"hint\""):
+        if needle not in html:
+            raise RuntimeError(f"Zauberkarten: {needle!r} fehlt")
+    if "Casting Value" in html:
+        raise RuntimeError("Zauberkarten: Meta-Präfix nicht abgetrennt")
 
 
 # ── Runner ───────────────────────────────────────────────────────────────────
@@ -259,6 +298,7 @@ def main():
     print("[4] Generierung")
     check("karten-generierung", t_generate_cards)
     check("schnellreferenz", t_reference)
+    check("zauberkarten", t_spell_reference)
 
     print("=" * 50)
     failed = [r for r in RESULTS if not r[0]]

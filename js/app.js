@@ -17,6 +17,7 @@ const els = {
   pick:   document.getElementById("pick"),
   gen:    document.getElementById("gen"),
   ref:    document.getElementById("ref"),
+  spells: document.getElementById("spells"),
   print:  document.getElementById("print"),
   bw:     document.getElementById("bw"),
   bwwrap: document.getElementById("bwwrap"),
@@ -66,6 +67,7 @@ async function boot() {
 
     setStatus("Bereit. Wähle eine Liste.", "");
     els.ref.disabled = false;
+    els.spells.disabled = false;
     refreshGenButton();  // falls schon eine Liste vor dem Laden gewaehlt wurde
   } catch (e) {
     console.error(e);
@@ -213,6 +215,32 @@ function showReference() {
   }
 }
 
+// Zauberkarten: alle Lehren (Index + je 7 Zauber) live von tow.whfb.app.
+async function showSpellCards() {
+  if (!gen) return;
+  els.spells.disabled = true;
+  try {
+    setStatus("Zauberkarten – hole alle Lehren live von tow.whfb.app …", "busy");
+    const lores = ((await towPageProps("cards")).magicLores || [])
+      .map(l => l.fields || {}).filter(f => f.slug);
+    if (!lores.length) throw new Error("keine Zauberlehren von tow.whfb.app erhalten");
+    const spells = await Promise.all(lores.map(async f => {
+      try { return (await towPageProps(`cards/${f.slug}`)).spells || []; }
+      catch (e) { console.warn("tow Lore:", f.slug, e); return []; }
+    }));
+    const data = lores.map((f, i) => [f.name || f.slug, spells[i]]);
+    const py = pyodide.toPy(data);
+    showHtml(gen.render_spell_reference(py));
+    py.destroy?.();
+    setStatus(`Zauberkarten: ${data.filter(d => d[1].length).length} Lehren von tow.whfb.app.`, "");
+  } catch (e) {
+    console.error(e);
+    setStatus("Fehler bei den Zauberkarten: " + e.message, "err");
+  } finally {
+    els.spells.disabled = !gen;
+  }
+}
+
 function printOut() {
   const w = els.out.contentWindow;
   if (w) { w.focus(); w.print(); }
@@ -222,10 +250,12 @@ function printOut() {
 els.file.addEventListener("change", e => readFiles(e.target.files));
 els.gen.addEventListener("click", generate);
 els.ref.addEventListener("click", showReference);
+els.spells.addEventListener("click", showSpellCards);
 els.print.addEventListener("click", printOut);
 els.bw.addEventListener("change", applyBw);
 els.out.addEventListener("load", applyBw);  // nach jedem Neu-Rendern Zustand halten
 els.ref.disabled = true;
+els.spells.disabled = true;
 
 ["dragover", "dragenter"].forEach(ev =>
   els.drop.addEventListener(ev, e => { e.preventDefault(); els.drop.classList.add("hover"); }));
