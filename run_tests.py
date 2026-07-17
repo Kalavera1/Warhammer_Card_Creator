@@ -142,6 +142,48 @@ def t_parry_rules():
         raise RuntimeError("Parry trotz Kavallerie")
 
 
+# ── 3c. Rüstungs-Modifikatoren aus Sonderregeln ─────────────────────────────
+def t_armour_modifiers():
+    """Regressionstest: Sonderregeln wie Armoured Hide (X) verbessern den
+    Rüstungswurf (ohne Klammer: 1); ohne Rüstung zählt 7+ als Basis
+    (Schild allein -> 6+); Gromril Armour (Re-Roll 1er) wird als Hinweis
+    gelistet, ändert den Wert aber nicht."""
+    import generate_cards as gc
+
+    def sel(rules, armour):
+        profiles = [{"typeName": "Unit", "name": "T", "characteristics": [
+            {"$text": "Regular infantry", "name": "Troop Type"}]}]
+        profiles += [{"typeName": "Armour", "name": n, "characteristics": [
+            {"$text": d, "name": "Description"}]} for n, d in armour]
+        profiles += [{"typeName": "Special Rule", "name": n,
+                      "characteristics": [{"$text": d, "name": "Description"}]}
+                     for n, d in rules]
+        return {"type": "unit", "name": "T", "profiles": profiles}
+
+    hide = ("Armoured Hide (2)", "The hide of some creatures forms natural "
+            "armour and improves their armour value ( and that of their "
+            "rider). Note that a model that wears no armour is considerer "
+            "to have an armour value of 7+.")
+    u = gc.build_unit(sel([hide], [("Testpanzer", "Armour Value of 5+")]))
+    if u.save != "3+":
+        raise RuntimeError(f"Armoured Hide (2) + 5+ müsste 3+ sein: {u.save}")
+    u = gc.build_unit(sel([hide], []))
+    if u.save != "5+":
+        raise RuntimeError(f"Armoured Hide (2) ohne Rüstung müsste 5+ "
+                           f"sein (Basis 7+): {u.save}")
+    u = gc.build_unit(sel([(hide[0].split(" (")[0], hide[1])], []))
+    if u.save != "6+":
+        raise RuntimeError(f"Armoured Hide ohne Klammer müsste 1 verbessern "
+                           f"(7+ -> 6+): {u.save}")
+    gromril = ("Testgromril", "A model with this special rule may re-roll "
+               "any roll of a natural 1 made when making an Armour Save roll")
+    u = gc.build_unit(sel([gromril], [("Testpanzer", "Armour Value of 5+")]))
+    if u.save != "5+":
+        raise RuntimeError(f"Re-Roll-Regel darf den Wert nicht ändern: {u.save}")
+    if not any("neu würfeln" in p for p in u.save_parts):
+        raise RuntimeError(f"Re-Roll-Hinweis fehlt in save_parts: {u.save_parts}")
+
+
 # ── 4. Ende-zu-Ende: Kartengenerierung ───────────────────────────────────────
 FIXTURE = os.path.join("tests", "fixtures", "testliste.json")
 
@@ -213,6 +255,7 @@ def main():
     print("[3] Kurztexte")
     check("kurztext-prioritaet", t_short_text_priority)
     check("parry-nur-fussvolk", t_parry_rules)
+    check("ruestungs-modifikatoren", t_armour_modifiers)
     print("[4] Generierung")
     check("karten-generierung", t_generate_cards)
     check("schnellreferenz", t_reference)

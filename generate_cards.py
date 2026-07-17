@@ -192,7 +192,12 @@ def compute_save(armour_items):
     if fixed is not None:
         return f"{fixed}+", parts
     if base is None:
-        return "", parts
+        if improve == 0:
+            return "", parts
+        # Ohne Ruestung zaehlt 7+ als Basis fuer Verbesserungen (Schild
+        # allein oder Armoured Hide ohne Ruestung -> 6+ usw.)
+        base = 7
+        parts.append("ohne Rüstung (7+)")
     final = max(1, base - improve)
     return f"{final}+", parts
 
@@ -334,7 +339,26 @@ def build_unit(sel: dict) -> Unit:
                     seen_other.add(key)
                     u.other.append((tn or "Sonstiges", pname, desc))
 
+    # Sonderregeln, die den Ruestungswurf aendern (Armoured Hide (X) der Orks
+    # inkl. Reiter, Scaly Skin ...): wirken wie Schild/Barding als
+    # Verbesserung. Fehlt der Klammerwert im Export, gilt 1.
+    for r in u.special_rules:
+        if re.search(r"improves\s+(?:its|their)\s+armour\s+value",
+                     r.text or "", re.I):
+            m = re.search(r"\((\d+)\)", r.name)
+            step = int(m.group(1)) if m else 1
+            u.armour_items.append(
+                (base_rule_name(r.name),
+                 f"improves its armour value by {step}"))
+
     u.save, u.save_parts = compute_save(u.armour_items)
+
+    # Gromril Armour u.ae.: Re-Roll von 1ern beim Ruestungswurf -> Wert bleibt,
+    # aber als Hinweis in den Save-Teilen zeigen.
+    for r in u.special_rules:
+        if re.search(r"re-?roll.*natural 1.*armour\s+save", r.text or "", re.I):
+            u.save_parts.append(f"{r.name} (1er neu würfeln)")
+
     u.save_melee = parry_save(u)
     if not u.model_count:
         u.model_count = max((m.count for m in u.models), default=1)
