@@ -266,7 +266,7 @@ def t_spell_reference():
     import generate_cards as gc
     body = {"nodeType": "document", "content": [
         {"nodeType": "text", "value":
-         "Type Testtyp Casting Value 8+ Range 18\" "
+         "Type Magic Missile Casting Value 8+ Range 18\" "
          "Der Testzauber trifft die Zieleinheit mit D6 Testtreffern."}]}
     lore = [{"fields": {"name": "Testblitz", "type": "Signature Spell",
                         "castingValue": 8, "range": "18\"", "body": body}},
@@ -279,6 +279,9 @@ def t_spell_reference():
             raise RuntimeError(f"Zauberkarten: {needle!r} fehlt")
     if "Casting Value" in html:
         raise RuntimeError("Zauberkarten: Meta-Präfix nicht abgetrennt")
+    # Phase des Zaubers (aus rule_phases.json spell_types) wird angezeigt
+    if "Shooting Phase" not in html:
+        raise RuntimeError("Zauberkarten: Phasen-Anzeige (Shooting Phase) fehlt")
     # Einzelne Spielkarten: 1 Karte pro Zauber, 3x3-Raster, Klick-Ausblenden
     html = gc.render_spell_playing_cards([("Testlehre", lore)])
     if html.count("card back pcard") != 2:

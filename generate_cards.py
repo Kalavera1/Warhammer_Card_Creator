@@ -715,7 +715,24 @@ def classify_rule(name: str, text: str):
 
 
 def spell_phase(spell_type: str):
-    return RP.get("spell_types", {}).get((spell_type or "").lower())
+    st = (spell_type or "").lower()
+    types = RP.get("spell_types", {})
+    if st in types:
+        return types[st]
+    # zusammengesetzte Typen ("Enchantment or Hex"): erster Treffer zaehlt
+    for k, v in types.items():
+        if k in st:
+            return v
+    return None
+
+
+def spell_phase_label(spell_type: str) -> str:
+    """Anzeige auf den Karten: in welcher Phase wird der Zauber gesprochen."""
+    ph = spell_phase(spell_type)
+    if not ph:
+        return ""
+    phase, sub = ph
+    return f"{phase} Phase" + (" (Command)" if sub == "Command" else "")
 
 
 def short_effect(text: str, n: int = 150) -> str:
@@ -985,15 +1002,21 @@ def render_weapons(u: Unit) -> str:
             f"<th>AP</th><th>Sonderregeln</th></tr>{rows}</table>")
 
 
+def _spell_meta(s: Spell) -> str:
+    """Meta-Zeile eines Zaubers: GW-Wert, Typ, Reichweite + Phase."""
+    ph = spell_phase_label(s.type)
+    return " &middot; ".join(filter(None, [
+        f"GW {esc(s.casting)}" if s.casting else "",
+        esc(s.type), esc(s.rng),
+        f"<span class='spellphase'>{esc(ph)}</span>" if ph else ""]))
+
+
 def _spell_block(s: Spell, effect_html: str) -> str:
     """Ein Zauber-Block (Rueckseite/Zauberkarten): Nummer, Name, Meta, Text."""
-    info = " &middot; ".join(filter(None, [
-        f"GW {esc(s.casting)}" if s.casting else "",
-        esc(s.type), esc(s.rng)]))
     num = (f"<span class='spellnum'>{esc(s.number)}</span> "
            if s.number else "")
     return (f"<div class='rule spell'><span class='rn'>{num}{esc(s.name)}</span>"
-            f"<span class='spellmeta'>{info}</span>"
+            f"<span class='spellmeta'>{_spell_meta(s)}</span>"
             f"<div class='rt'>{effect_html}</div></div>")
 
 
@@ -1201,6 +1224,7 @@ table.weapons td.wrules { font-size:7pt; }
   text-transform:uppercase; color:#bcd; border-top:1px solid #4a7a8c;
   margin:1.6mm 0 1mm; padding-top:1mm; break-after:avoid; }
 .spellmeta { font-size:7pt; color:#cea; margin-left:3px; }
+.spellphase { color:#9be0a6; font-weight:700; }
 .spellnum { display:inline-block; min-width:1.2em; text-align:center;
   font-weight:800; color:#1f3a47; background:#e8a; border-radius:3px;
   padding:0 2px; margin-right:2px; font-size:7pt; }
@@ -1506,16 +1530,13 @@ druckst du nur die Zauber deiner Magier. 9 Karten pro A4-Blatt
 
 def render_spell_playing_card(lore_name, s: Spell) -> str:
     """Ein Zauber als einzelne Spielkarte (Standard-Format 63,5 x 88,9 mm)."""
-    info = " &middot; ".join(filter(None, [
-        f"GW {esc(s.casting)}" if s.casting else "",
-        esc(s.type), esc(s.rng)]))
     num = (f"<span class='spellnum'>{esc(s.number)}</span> "
            if s.number else "")
     return f"""
     <div class="card back pcard"><div class="fit">
       <div class="pchead">{num}{esc(s.name)}</div>
       <div class="pclore">{esc(lore_name)}</div>
-      <div class="pcmeta">{info}</div>
+      <div class="pcmeta">{_spell_meta(s)}</div>
       <div class="pctext">{hl(s.effect)}</div>
     </div></div>"""
 

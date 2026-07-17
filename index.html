@@ -53,6 +53,13 @@
       background:var(--panel); border:1px solid #4a7a8c; border-radius:10px;
       box-shadow:0 6px 18px #0006; min-width:265px; }
     .menu .menuitems button { text-align:left; }
+    /* Zauberlehren-Auswahl (Checkboxen) */
+    .lorelist { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));
+      gap:4px 16px; font-size:13px; margin:4px 0 6px; }
+    .lorelist label { display:flex; align-items:center; gap:7px; cursor:pointer;
+      user-select:none; }
+    .lorelist input { width:15px; height:15px; cursor:pointer; }
+    .lorelist .std { color:var(--accent); }
   </style>
 </head>
 <body>
@@ -89,6 +96,16 @@
         </label>
       </div>
       <div class="status" id="status">Lade Python-Laufzeit (Pyodide) …</div>
+    </div>
+
+    <div class="panel hidden" id="lorepanel">
+      <h2>Zauberlehren wählen</h2>
+      <div class="lorelist" id="lorelist"></div>
+      <div class="row">
+        <button id="lorego">Karten erstellen</button>
+        <button id="loreall" class="secondary">Alle</button>
+        <button id="lorenone" class="secondary">Keine</button>
+      </div>
     </div>
 
     <div class="panel hidden" id="outpanel">

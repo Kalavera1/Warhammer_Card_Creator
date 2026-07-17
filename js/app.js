@@ -20,6 +20,11 @@ const els = {
   spells: document.getElementById("spells"),
   spellcards: document.getElementById("spellcards"),
   refmenu: document.getElementById("refmenu"),
+  lorepanel: document.getElementById("lorepanel"),
+  lorelist:  document.getElementById("lorelist"),
+  lorego:    document.getElementById("lorego"),
+  loreall:   document.getElementById("loreall"),
+  lorenone:  document.getElementById("lorenone"),
   print:  document.getElementById("print"),
   bw:     document.getElementById("bw"),
   bwwrap: document.getElementById("bwwrap"),
@@ -218,37 +223,77 @@ function showReference() {
   }
 }
 
-// Alle Zauberlehren (Index + je 7 Zauber) live von tow.whfb.app holen.
-async function fetchAllLores() {
-  const lores = ((await towPageProps("cards")).magicLores || [])
-    .map(l => l.fields || {}).filter(f => f.slug);
-  if (!lores.length) throw new Error("keine Zauberlehren von tow.whfb.app erhalten");
-  const spells = await Promise.all(lores.map(async f => {
-    try { return (await towPageProps(`cards/${f.slug}`)).spells || []; }
-    catch (e) { console.warn("tow Lore:", f.slug, e); return []; }
-  }));
-  return lores.map((f, i) => [f.name || f.slug, spells[i]]);
+// --- Zauberkarten mit Lehren-Auswahl -----------------------------------------
+// Ablauf: Menüpunkt klicken -> Lehren-Index von tow.whfb.app -> Checkboxen
+// (Regelbuch-Schulen "(Standard)" vorausgewählt) -> "erstellen" holt nur die
+// gewählten Lehren und rendert A6-Lehren-Karten ODER einzelne Spielkarten.
+let loreIndex = null;      // [{name, slug, standard}]
+const loreCache = {};      // slug -> Zauberliste
+let loreSingle = false;    // false = je Lehre (A6), true = Spielkarten
+
+async function openLoreSelect(single) {
+  if (!gen) return;
+  loreSingle = single;
+  try {
+    if (!loreIndex) {
+      setStatus("Hole Zauberlehren-Liste von tow.whfb.app …", "busy");
+      loreIndex = ((await towPageProps("cards")).magicLores || [])
+        .map(l => l.fields || {}).filter(f => f.slug)
+        .map(f => ({ name: f.name || f.slug, slug: f.slug,
+                     standard: !f.slug.startsWith("lore-of-") }));
+      if (!loreIndex.length) throw new Error("keine Zauberlehren von tow.whfb.app erhalten");
+      els.lorelist.innerHTML = "";
+      for (const l of loreIndex) {
+        const lab = document.createElement("label");
+        const cb = document.createElement("input");
+        cb.type = "checkbox"; cb.value = l.slug; cb.checked = l.standard;
+        lab.appendChild(cb);
+        lab.appendChild(document.createTextNode(" " + l.name + " "));
+        if (l.standard) {
+          const s = document.createElement("span");
+          s.className = "std"; s.textContent = "(Standard)";
+          lab.appendChild(s);
+        }
+        els.lorelist.appendChild(lab);
+      }
+    }
+    els.lorego.textContent = single
+      ? "Spielkarten erstellen" : "Lehren-Karten (A6) erstellen";
+    els.lorepanel.classList.remove("hidden");
+    els.lorepanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    setStatus("Lehren auswählen, dann „erstellen“ klicken.", "");
+  } catch (e) {
+    console.error(e);
+    setStatus("Fehler: " + e.message, "err");
+  }
 }
 
-// Zauberkarten: eine Karte je Lehre ODER jeder Zauber als einzelne Spielkarte.
-async function showSpellCards(single) {
-  if (!gen) return;
-  els.spells.disabled = els.spellcards.disabled = true;
+async function buildSpellDocs() {
+  if (!gen || !loreIndex) return;
+  const sel = [...els.lorelist.querySelectorAll("input:checked")].map(c => c.value);
+  if (!sel.length) { setStatus("Keine Lehre ausgewählt.", "err"); return; }
+  els.lorego.disabled = true;
   try {
-    setStatus("Zauberkarten – hole alle Lehren live von tow.whfb.app …", "busy");
-    const data = await fetchAllLores();
+    setStatus(`Hole ${sel.length} Lehre(n) live von tow.whfb.app …`, "busy");
+    await Promise.all(sel.map(async slug => {
+      if (!loreCache[slug]) {
+        try { loreCache[slug] = (await towPageProps(`cards/${slug}`)).spells || []; }
+        catch (e) { console.warn("tow Lore:", slug, e); loreCache[slug] = []; }
+      }
+    }));
+    const data = loreIndex.filter(l => sel.includes(l.slug))
+      .map(l => [l.name, loreCache[l.slug]]);
     const py = pyodide.toPy(data);
-    showHtml(single ? gen.render_spell_playing_cards(py)
-                    : gen.render_spell_reference(py));
+    showHtml(loreSingle ? gen.render_spell_playing_cards(py)
+                        : gen.render_spell_reference(py));
     py.destroy?.();
-    const n = data.filter(d => d[1].length).length;
-    setStatus(`Zauberkarten (${single ? "Spielkarten" : "je Lehre"}): `
-      + `${n} Lehren von tow.whfb.app.`, "");
+    setStatus(`Zauberkarten (${loreSingle ? "Spielkarten" : "je Lehre"}): `
+      + `${sel.length} Lehre(n) von tow.whfb.app.`, "");
   } catch (e) {
     console.error(e);
     setStatus("Fehler bei den Zauberkarten: " + e.message, "err");
   } finally {
-    els.spells.disabled = els.spellcards.disabled = !gen;
+    els.lorego.disabled = false;
   }
 }
 
@@ -261,8 +306,13 @@ function printOut() {
 els.file.addEventListener("change", e => readFiles(e.target.files));
 els.gen.addEventListener("click", generate);
 els.ref.addEventListener("click", showReference);
-els.spells.addEventListener("click", () => showSpellCards(false));
-els.spellcards.addEventListener("click", () => showSpellCards(true));
+els.spells.addEventListener("click", () => openLoreSelect(false));
+els.spellcards.addEventListener("click", () => openLoreSelect(true));
+els.lorego.addEventListener("click", buildSpellDocs);
+els.loreall.addEventListener("click", () =>
+  els.lorelist.querySelectorAll("input").forEach(c => { c.checked = true; }));
+els.lorenone.addEventListener("click", () =>
+  els.lorelist.querySelectorAll("input").forEach(c => { c.checked = false; }));
 // Referenzen-Menü nach Auswahl schließen
 els.refmenu.addEventListener("click", e => {
   if (e.target.closest("button")) els.refmenu.removeAttribute("open");

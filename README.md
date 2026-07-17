@@ -58,8 +58,11 @@ Reihenfolge der Seiten: Blatt 1 = 2 Vorderseiten, Blatt 2 = die passenden
 
 `python3 generate_cards.py --zauber` (oder das Menü **„Referenzen"** in der
 Web-App) erzeugt zwei Dokumente, jeweils mit allen Zaubern (Signature + 1–6)
-in Würfel-Reihenfolge und **vollem Regeltext**, live von
-<https://tow.whfb.app> (aktuell 29 Lehren):
+in Würfel-Reihenfolge, **vollem Regeltext** und der **Phase, in der der
+Zauber gesprochen wird**, live von <https://tow.whfb.app> (aktuell 29
+Lehren). In der Web-App erscheint vorher eine **Checkbox-Auswahl der
+Lehren** – die acht Regelbuch-Schulen sind mit „(Standard)" markiert und
+vorausgewählt, Fraktions-Lores wählt man bei Bedarf dazu:
 
 - **`Zauberkarten.html`** – eine Referenzkarte **pro Lehre** (A6, wie die
   Unit-Karten).
