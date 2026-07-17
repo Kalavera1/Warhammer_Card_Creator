@@ -51,6 +51,24 @@
                   {"$text": "-2", "name": "AP"},
                   {"$text": "Two-handed", "name": "Special Rules"}
                 ]
+              },
+              {
+                "typeName": "Magic Weapons",
+                "name": "Testflegel",
+                "characteristics": [
+                  {"$text": "Combat", "name": "R"},
+                  {"$text": "S", "name": "S"},
+                  {"$text": "-3", "name": "AP"},
+                  {"$text": "Magical Attacks, Requires Two Hands", "name": "Special Rules"},
+                  {"$text": "Der Testflegel verwundet immer mit einem Testbonuswurf von 3+.", "name": "Note"}
+                ]
+              },
+              {
+                "typeName": "Magic Standards",
+                "name": "Testbanner",
+                "characteristics": [
+                  {"$text": "Eine Einheit mit dem Testbanner erhaelt +1 auf ihr Testkampfergebnis.", "name": "Description"}
+                ]
               }
             ],
             "selections": [

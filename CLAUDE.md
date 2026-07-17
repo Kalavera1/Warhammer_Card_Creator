@@ -27,6 +27,12 @@ Höhe wächst 105→140 mm (Duplex-Paar gleich hoch), dann erst Schrift-Shrink.
 - Sonst: **die Export-JSON ist die Quelle der Wahrheit.** Liefert sie
   einen Regeltext, wird dieser angezeigt (frisch gekürzt via
   `short_text`) — nichts wird gemerkt/eingefroren.
+- `rule_text.json → front_highlights` (Regelname → '' | 'charge' |
+  'charged'): Kampf-Sonderregeln, die als „Auf einen Blick"-Zeile mit
+  Kurz-Effekt auf die VORDERSEITE kommen (gruppiert nach „Wenn du
+  angreifst"/„Wenn du angegriffen wirst"). Magische Items mit Wirkung
+  (Standarten, Waffen-Note …) bekommen dort automatisch eine Zeile;
+  magische Waffen sind in der Waffentabelle gold markiert.
 - Die lokalen Regel-DBs (`rule_text.json`, `rule_glossary.json`) sind
   NUR Fallback für Regeln ohne Text im Export (OWB-Listen,
   Waffen-/Universalregeln). `rule_phases.json` ordnet Regeln den

@@ -81,6 +81,23 @@ vorausgewählt, Fraktions-Lores wählt man bei Bedarf dazu:
   Vorder- und Rückseite derselben Einheit bleiben für den Duplexdruck gleich
   hoch). Erst wenn auch das nicht reicht, wird die Schrift verkleinert.
 
+### „Auf einen Blick"-Zeilen auf der Vorderseite
+
+Direkt unter den Stats stehen kleine, gold markierte Erinnerungs-Zeilen,
+damit am Tisch nichts vergessen wird:
+
+- **Magische Gegenstände mit Wirkung** (Standarten, Talismane, Ringe …)
+  mit Kurz-Effekt; magische **Waffen** stehen mit ihren Werten gold
+  markiert in der Waffentabelle, ihr Spezialeffekt (`Note` im Export)
+  erscheint als Zeile.
+- **Kampf-Sonderregeln** wie Frenzy, Furious Charge, Choppas, Counter
+  Charge – gruppiert nach **„Wenn du angreifst"** und **„Wenn du
+  angegriffen wirst"**. Welche Regeln so hervorgehoben werden, steuert
+  `rule_text.json → front_highlights` (Name → `''`/`charge`/`charged`) –
+  einfach ergänzen, was ihr am Tisch vergesst.
+
+Die vollen Texte stehen wie immer auf der Rückseite.
+
 ## Karteninhalt
 
 **Vorderseite (kompakt):**

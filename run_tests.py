@@ -93,6 +93,13 @@ def t_rule_data():
             raise RuntimeError(
                 f"override '{name}' zu lang ({len(text)} > "
                 f"{gc.OVERRIDE_MAX_LEN} Zeichen, passt nicht in 2 Zeilen)")
+    # front_highlights: Regelname -> Gruppe ('', 'charge', 'charged')
+    fh = rt.get("front_highlights", {})
+    if not isinstance(fh, dict) or not fh:
+        raise RuntimeError("rule_text.json: 'front_highlights' fehlt/kein Objekt")
+    bad = {n: g for n, g in fh.items() if g not in ("", "charge", "charged")}
+    if bad:
+        raise RuntimeError(f"front_highlights: unbekannte Gruppe(n): {bad}")
     gl = json.load(open("rule_glossary.json", encoding="utf-8"))
     if not isinstance(gl.get("glossary"), dict) or not gl["glossary"]:
         raise RuntimeError("rule_glossary.json: 'glossary' fehlt/leer")
@@ -208,6 +215,8 @@ def t_generate_cards():
     mtimes = {f: os.path.getmtime(f)
               for f in ("rule_text.json", "rule_phases.json",
                         "rule_glossary.json")}
+    # Synthetische Regel als Kampf-Highlight markieren (nur in-memory)
+    gc.RT.setdefault("front_highlights", {})["Testregel"] = "charge"
     with tempfile.TemporaryDirectory() as td:
         out = gc.process_file(FIXTURE, td)
         html = open(out, encoding="utf-8").read()
@@ -241,12 +250,25 @@ def t_generate_cards():
             raise RuntimeError("data-u/Höhen-Logik fehlt in den Karten")
         if ".rule.skip" not in html:
             raise RuntimeError("skip-CSS (Zauber-/Regelauswahl) fehlt")
+        # Magische Waffe: markiert in der Waffentabelle, 'Note'-Text als
+        # Blick-Zeile vorne UND als Block auf der Rückseite
+        if "'wn magic'" not in html:
+            raise RuntimeError("magische Waffe (Testflegel) nicht markiert")
+        if html.count("Testbonuswurf") < 2:
+            raise RuntimeError("Note der magischen Waffe fehlt vorne/hinten")
+        if "itemline" not in html or "Testkampfergebnis" not in html:
+            raise RuntimeError("Blick-Zeile der Standarte (Testbanner) fehlt")
+        # Kampf-Sonderregel aus front_highlights mit Gruppen-Überschrift
+        if "Wenn du angreifst" not in html:
+            raise RuntimeError("front_highlights-Gruppe 'charge' fehlt "
+                               "(Testregel)")
         plan_path = os.path.join(td, "testliste_plan.html")
         if not os.path.exists(plan_path):
             raise RuntimeError("Ablaufplan fehlt")
         if "<title>testliste_plan</title>" not in open(
                 plan_path, encoding="utf-8").read():
             raise RuntimeError("Plan-<title> falsch")
+    gc.RT["front_highlights"].pop("Testregel", None)
     for f, m in mtimes.items():
         if os.path.getmtime(f) != m:
             raise RuntimeError(f"{f} wurde beim Generieren verändert!")

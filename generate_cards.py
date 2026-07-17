@@ -60,6 +60,7 @@ class Weapon:
     s: str = "-"
     ap: str = "-"
     rules: str = "-"
+    magic: bool = False   # magische Waffe -> in der Tabelle markiert
 
 
 @dataclass
@@ -289,7 +290,15 @@ def build_unit(sel: dict) -> Unit:
                     u.weapons.append(Weapon(
                         pname,
                         ch.get("R", "-"), ch.get("S", "-"),
-                        ch.get("AP", "-"), rules))
+                        ch.get("AP", "-"), rules,
+                        magic=(tn == "Magic Weapons")))
+                    # Magischer Effekt der Waffe steht im 'Note'-Feld ->
+                    # wie ein magischer Gegenstand fuehren (vorne kurz,
+                    # hinten voller Text). Ging frueher komplett verloren.
+                    note = (ch.get("Note") or "").strip()
+                    if note and pname not in seen_items:
+                        seen_items.add(pname)
+                        u.magic_items.append(NamedText(pname, note))
                     # Referenzierte Waffen-Sonderregeln einsammeln (Namen),
                     # Erklaerung kommt spaeter aus dem Glossar.
                     if rules and rules != "-":
@@ -995,7 +1004,8 @@ def render_weapons(u: Unit) -> str:
         return ""
     rows = ""
     for w in u.weapons:
-        rows += (f"<tr><td class='wn'>{esc(w.name)}</td><td>{esc(w.r)}</td>"
+        cls = "wn magic" if w.magic else "wn"
+        rows += (f"<tr><td class='{cls}'>{esc(w.name)}</td><td>{esc(w.r)}</td>"
                  f"<td>{esc(w.s)}</td><td>{esc(w.ap)}</td>"
                  f"<td class='wrules'>{esc(w.rules) if w.rules not in ('-','') else ''}</td></tr>")
     return ("<table class='weapons'><tr><th>Waffe</th><th>R</th><th>S</th>"
@@ -1052,10 +1062,43 @@ def render_front(u: Unit, idx: int = -1) -> str:
         rule_names = ("<div class='rulenames'><b>Sonderregeln:</b> "
                       + ", ".join(esc(r.name) for r in u.special_rules) + "</div>")
 
+    # "Auf einen Blick"-Zeilen direkt unter den Stats (Stil wie Parry-Fussnote,
+    # Goldkante): magische Gegenstaende MIT Wirkung (Standarten, magische
+    # Waffen, Talismane ...) und leicht vergessene Kampf-Sonderregeln
+    # (Frenzy, Furious Charge ... -> rule_text.json 'front_highlights').
+    # Der volle Text steht jeweils auf der Rueckseite.
     items = ""
     if u.magic_items:
-        items = ("<div class='items'><b>Ausr&uuml;stung/Magie:</b> "
-                 + ", ".join(esc(i.name) for i in u.magic_items) + "</div>")
+        plain = [i.name for i in u.magic_items if not (i.text or "").strip()]
+        items = "<div class='items'><b>Ausr&uuml;stung/Magie:</b>"
+        if plain:
+            items += " " + ", ".join(esc(n) for n in plain)
+        items += "</div>"
+        for i in u.magic_items:
+            if (i.text or "").strip():
+                gist = short_effect(short_text(i.name, i.text), 90)
+                items += (f"<div class='itemline'><span class='iname'>"
+                          f"{esc(i.name)}:</span> {hl(gist)}</div>")
+    fh = RT.get("front_highlights", {})
+    if isinstance(fh, list):                     # alte Form: einfache Liste
+        fh = {n: "" for n in fh}
+    grouped = {"": [], "charge": [], "charged": []}
+    for r in u.special_rules:
+        grp = fh.get(r.name, fh.get(base_rule_name(r.name)))
+        if grp is None:
+            continue
+        gist = short_effect(short_text(r.name, r.text), 90)
+        if gist:
+            key = grp if grp in grouped else ""
+            grouped[key].append(
+                f"<div class='itemline'><span class='iname'>{esc(r.name)}:"
+                f"</span> {hl(gist)}</div>")
+    for key, hdr in (("", ""), ("charge", "&#9876; Wenn du angreifst"),
+                     ("charged", "&#9876; Wenn du angegriffen wirst")):
+        if grouped[key]:
+            if hdr:
+                items += f"<div class='itemhdr'>{hdr}</div>"
+            items += "".join(grouped[key])
 
     command = ""
     if u.command:
@@ -1079,9 +1122,9 @@ def render_front(u: Unit, idx: int = -1) -> str:
         {save_html}
       </div>
       {save_parts}
+      {items}
       {render_weapons(u)}
       {command}
-      {items}
       {spells}
       {rule_names}
     </div></div>"""
@@ -1184,7 +1227,18 @@ table.weapons th, table.weapons td {
   border:1px solid #4a7a8c; padding:1px 4px; font-size:8pt; }
 table.weapons th { background:#3a6678; }
 table.weapons td.wn { font-weight:600; }
+table.weapons td.wn.magic { color:#ffdf6b; }
 table.weapons td.wrules { font-size:7pt; }
+/* Kurz-Effekt magischer Gegenstaende auf der Vorderseite: direkt unter den
+   Stats und deutlich markiert (Goldkante), damit man ihn nicht vergisst. */
+.itemline { font-size:7.5pt; color:#eef; line-height:1.3; margin:.5mm 0;
+  padding:.4mm 1.5mm; background:#2a5d75; border-left:2px solid #f0d27a;
+  border-radius:2px; }
+.itemline .iname { color:#ffdf6b; font-weight:700; }
+.itemline .hl { color:#ffdf6b; font-weight:700; }
+.bw .itemline { border:1px solid #777 !important; border-left:3px solid #111 !important; }
+.itemhdr { font-size:6.6pt; font-weight:700; letter-spacing:.4px;
+  text-transform:uppercase; color:#f0d27a; margin:.8mm 0 .2mm; }
 .command,.items,.spelllist,.rulenames {
   font-size:8pt; margin:1.2mm 0; line-height:1.25; }
 .rulenames { margin-top:auto; }

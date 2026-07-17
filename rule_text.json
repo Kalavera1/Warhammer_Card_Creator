@@ -1,5 +1,28 @@
 {
-  "_comment": "Kurzfassungen der Regel-/Zauber-Texte fuer die Rueckseite und den Plan. 'overrides' = vom Nutzer kuratierte Kartentexte (max. 2 Zeilen / 150 Zeichen), gewinnen IMMER, auch gegen den Text aus der Export-JSON. 'summaries' = von Hand gepflegte Kurztexte, NUR Fallback ohne Export-Text (Schluessel = exakter Name). 'learned' = frueher automatisch gemerkt, waechst nicht mehr; bei Bedarf korrigieren oder nach 'summaries' verschieben. Ein Eintrag wird ueberall identisch verwendet (Karte + Plan).",
+  "_comment": "Kurzfassungen der Regel-/Zauber-Texte fuer die Rueckseite und den Plan. 'overrides' = vom Nutzer kuratierte Kartentexte (max. 2 Zeilen / 150 Zeichen), gewinnen IMMER, auch gegen den Text aus der Export-JSON. 'summaries' = von Hand gepflegte Kurztexte, NUR Fallback ohne Export-Text (Schluessel = exakter Name). 'learned' = frueher automatisch gemerkt, waechst nicht mehr; bei Bedarf korrigieren oder nach 'summaries' verschieben. Ein Eintrag wird ueberall identisch verwendet (Karte + Plan). 'front_highlights' = Kampf-Sonderregeln, die als Auf-einen-Blick-Zeile auf die VORDERSEITE kommen; Wert = Gruppe: 'charge' (wenn du angreifst), 'charged' (wenn du angegriffen wirst), '' (immer/Nahkampf).",
+  "front_highlights": {
+    "Frenzy": "",
+    "Hatred": "",
+    "Poisoned Attacks": "",
+    "Killing Blow": "",
+    "Armour Bane": "",
+    "Monster Slayer": "",
+    "Stubborn": "",
+    "Furious Charge": "charge",
+    "Choppas": "charge",
+    "Tusker Charge": "charge",
+    "First Charge": "charge",
+    "Devastating Charge": "charge",
+    "Impetuous": "charge",
+    "Swiftstride": "charge",
+    "Warband": "charge",
+    "Finest Warhorses": "charge",
+    "Counter Charge": "charged",
+    "Shieldwall": "charged",
+    "Fire & Flee": "charged",
+    "Fear": "charged",
+    "Terror": "charge"
+  },
   "overrides": {
     "Swiftstride": "Unit increases max Charge range +3\" and adds a D6 to Charge, Flee or Pursuit rolls.",
     "Magic Resistance": "Casting roll of enemy spells against a model or unit with this rule suffers the bracketed modifier (-X).",
@@ -35,7 +58,8 @@
     "Travel Mystical Pathway": "Target friendly unit (not fled/moved) is placed anywhere within 12\" of its position, not within 6\" of enemies; cannot move again this phase.",
     "Warband": "+Ld equal to current Rank Bonus (max Ld 10; not for Restraint/Impetuous tests); majority with this rule: re-roll Charge rolls.",
     "The Knight's Vow": "No Panic test when friendly Peasantry within 6\" are destroyed or flee through. Cannot mix with Peasantry characters/units.",
-    "Peasantry": "Within 6\" of a non-fleeing model with a Knight's/Questing/Grail Vow: may use its Ld. Standard never counts as a trophy; only joins Peasantry."
+    "Peasantry": "Within 6\" of a non-fleeing model with a Knight's/Questing/Grail Vow: may use its Ld. Standard never counts as a trophy; only joins Peasantry.",
+    "Terror": "When this unit declares a charge: the target must pass a Ld test or Flee. Chargers against it test as for Fear. Immune to Fear/Terror."
   },
   "summaries": {
     "General": "Inspiring Presence: Unless the General is fleeing, all friendly units within his Command range may use his Leadership instead of their own.",
