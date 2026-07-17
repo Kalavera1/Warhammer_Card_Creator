@@ -1423,14 +1423,16 @@ def render_reference_back() -> str:
     cr = ("<table class='reftbl'><caption>Kampfergebnis (+Punkte)</caption>"
           "<tr><th>Faktor</th><th>Pkt</th></tr>"
           "<tr><td class='rh'>Verursachte Wunden</td><td>+1 je</td></tr>"
-          "<tr><td class='rh'>Glied-Bonus</td><td>+1 je Glied</td></tr>"
+          "<tr><td class='rh'>Glied-Bonus (nur Close Order; Max. je "
+          "Truppentyp)</td><td>+1 je Glied</td></tr>"
           "<tr><td class='rh'>Standarte</td><td>+1</td></tr>"
           "<tr><td class='rh'>Armee-Standarte (BSB)</td><td>+1</td></tr>"
           "<tr><td class='rh'>Flankenangriff</td><td>+1</td></tr>"
           "<tr><td class='rh'>Rückenangriff</td><td>+2</td></tr>"
           "<tr><td class='rh'>Höherer Stand (High Ground)</td><td>+1</td></tr>"
           "<tr><td class='rh'>Overkill (Herausforderung)</td><td>+1 je Überwunde</td></tr>"
-          "<tr><td class='rh'>Höhere Unit Strength (Masse)</td><td>+1</td></tr>"
+          "<tr><td class='rh'>Massed Infantry: höhere Unit Strength als "
+          "Gegner (Close Order, US 10+)</td><td>+1</td></tr>"
           "</table>")
     return f"""
     <div class="card back"><div class="fit">
