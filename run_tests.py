@@ -279,6 +279,14 @@ def t_spell_reference():
             raise RuntimeError(f"Zauberkarten: {needle!r} fehlt")
     if "Casting Value" in html:
         raise RuntimeError("Zauberkarten: Meta-Präfix nicht abgetrennt")
+    # Einzelne Spielkarten: 1 Karte pro Zauber, 3x3-Raster, Klick-Ausblenden
+    html = gc.render_spell_playing_cards([("Testlehre", lore)])
+    if html.count("card back pcard") != 2:
+        raise RuntimeError("Spielkarten: nicht 1 Karte pro Zauber")
+    for needle in ("page pcards", "Testblitz", "Testlehre",
+                   ".pcard.skip", "63.5mm"):
+        if needle not in html:
+            raise RuntimeError(f"Spielkarten: {needle!r} fehlt")
 
 
 # ── Runner ───────────────────────────────────────────────────────────────────

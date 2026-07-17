@@ -18,6 +18,8 @@ const els = {
   gen:    document.getElementById("gen"),
   ref:    document.getElementById("ref"),
   spells: document.getElementById("spells"),
+  spellcards: document.getElementById("spellcards"),
+  refmenu: document.getElementById("refmenu"),
   print:  document.getElementById("print"),
   bw:     document.getElementById("bw"),
   bwwrap: document.getElementById("bwwrap"),
@@ -68,6 +70,7 @@ async function boot() {
     setStatus("Bereit. Wähle eine Liste.", "");
     els.ref.disabled = false;
     els.spells.disabled = false;
+    els.spellcards.disabled = false;
     refreshGenButton();  // falls schon eine Liste vor dem Laden gewaehlt wurde
   } catch (e) {
     console.error(e);
@@ -215,29 +218,37 @@ function showReference() {
   }
 }
 
-// Zauberkarten: alle Lehren (Index + je 7 Zauber) live von tow.whfb.app.
-async function showSpellCards() {
+// Alle Zauberlehren (Index + je 7 Zauber) live von tow.whfb.app holen.
+async function fetchAllLores() {
+  const lores = ((await towPageProps("cards")).magicLores || [])
+    .map(l => l.fields || {}).filter(f => f.slug);
+  if (!lores.length) throw new Error("keine Zauberlehren von tow.whfb.app erhalten");
+  const spells = await Promise.all(lores.map(async f => {
+    try { return (await towPageProps(`cards/${f.slug}`)).spells || []; }
+    catch (e) { console.warn("tow Lore:", f.slug, e); return []; }
+  }));
+  return lores.map((f, i) => [f.name || f.slug, spells[i]]);
+}
+
+// Zauberkarten: eine Karte je Lehre ODER jeder Zauber als einzelne Spielkarte.
+async function showSpellCards(single) {
   if (!gen) return;
-  els.spells.disabled = true;
+  els.spells.disabled = els.spellcards.disabled = true;
   try {
     setStatus("Zauberkarten – hole alle Lehren live von tow.whfb.app …", "busy");
-    const lores = ((await towPageProps("cards")).magicLores || [])
-      .map(l => l.fields || {}).filter(f => f.slug);
-    if (!lores.length) throw new Error("keine Zauberlehren von tow.whfb.app erhalten");
-    const spells = await Promise.all(lores.map(async f => {
-      try { return (await towPageProps(`cards/${f.slug}`)).spells || []; }
-      catch (e) { console.warn("tow Lore:", f.slug, e); return []; }
-    }));
-    const data = lores.map((f, i) => [f.name || f.slug, spells[i]]);
+    const data = await fetchAllLores();
     const py = pyodide.toPy(data);
-    showHtml(gen.render_spell_reference(py));
+    showHtml(single ? gen.render_spell_playing_cards(py)
+                    : gen.render_spell_reference(py));
     py.destroy?.();
-    setStatus(`Zauberkarten: ${data.filter(d => d[1].length).length} Lehren von tow.whfb.app.`, "");
+    const n = data.filter(d => d[1].length).length;
+    setStatus(`Zauberkarten (${single ? "Spielkarten" : "je Lehre"}): `
+      + `${n} Lehren von tow.whfb.app.`, "");
   } catch (e) {
     console.error(e);
     setStatus("Fehler bei den Zauberkarten: " + e.message, "err");
   } finally {
-    els.spells.disabled = !gen;
+    els.spells.disabled = els.spellcards.disabled = !gen;
   }
 }
 
@@ -250,12 +261,18 @@ function printOut() {
 els.file.addEventListener("change", e => readFiles(e.target.files));
 els.gen.addEventListener("click", generate);
 els.ref.addEventListener("click", showReference);
-els.spells.addEventListener("click", showSpellCards);
+els.spells.addEventListener("click", () => showSpellCards(false));
+els.spellcards.addEventListener("click", () => showSpellCards(true));
+// Referenzen-Menü nach Auswahl schließen
+els.refmenu.addEventListener("click", e => {
+  if (e.target.closest("button")) els.refmenu.removeAttribute("open");
+});
 els.print.addEventListener("click", printOut);
 els.bw.addEventListener("change", applyBw);
 els.out.addEventListener("load", applyBw);  // nach jedem Neu-Rendern Zustand halten
 els.ref.disabled = true;
 els.spells.disabled = true;
+els.spellcards.disabled = true;
 
 ["dragover", "dragenter"].forEach(ev =>
   els.drop.addEventListener(ev, e => { e.preventDefault(); els.drop.classList.add("hover"); }));

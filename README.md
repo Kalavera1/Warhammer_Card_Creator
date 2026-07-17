@@ -56,11 +56,17 @@ Reihenfolge der Seiten: Blatt 1 = 2 Vorderseiten, Blatt 2 = die passenden
 
 ### Zauberkarten – alle Lehren (`--zauber`)
 
-`python3 generate_cards.py --zauber` (oder der Button **„Zauberkarten (alle
-Lehren)"** in der Web-App) erzeugt **`Zauberkarten.html`**: eine Referenzkarte
-pro Zauberlehre (Battle Magic, Elementalism, alle Fraktions-Lores – aktuell
-29), jeweils mit allen Zaubern (Signature + 1–6) in Würfel-Reihenfolge und
-**vollem Regeltext**, live von <https://tow.whfb.app>.
+`python3 generate_cards.py --zauber` (oder das Menü **„Referenzen"** in der
+Web-App) erzeugt zwei Dokumente, jeweils mit allen Zaubern (Signature + 1–6)
+in Würfel-Reihenfolge und **vollem Regeltext**, live von
+<https://tow.whfb.app> (aktuell 29 Lehren):
+
+- **`Zauberkarten.html`** – eine Referenzkarte **pro Lehre** (A6, wie die
+  Unit-Karten).
+- **`Zauber-Spielkarten.html`** – **jeder Zauber als einzelne Spielkarte**
+  im Standard-Spielkartenformat (63,5 × 88,9 mm), 9 pro A4-Blatt. Klick auf
+  eine Karte nimmt sie vom Druck aus – so druckst du nur die Zauber deiner
+  Magier und steckst sie in normale Kartenhüllen.
 
 ### Auswählen, was gedruckt wird & flexible Kartenhöhe
 

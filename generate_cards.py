@@ -1184,6 +1184,19 @@ table.weapons td.wrules { font-size:7pt; }
 .hint { max-width:148mm; margin:4mm auto 0; padding:2mm 3mm; font-size:9pt;
   color:#345; background:#f4f0e2; border:1px solid #cbbf9a; border-radius:4px; }
 @media print { .hint { display:none; } }
+/* Zauber-Spielkarten: Standardformat 63,5 x 88,9 mm, 9 pro A4-Blatt (3x3) */
+.page.pcards { flex-direction:row; flex-wrap:wrap; gap:3mm;
+  align-content:center; justify-content:center; }
+.card.pcard { width:63.5mm; height:88.9mm; padding:3.5mm 4mm; cursor:pointer; }
+.pcard .pchead { font-size:10pt; font-weight:700; letter-spacing:.2px;
+  color:#f3ede0; border-bottom:2px solid #d8c79b; padding-bottom:1.2mm; }
+.pcard .pclore { font-size:7pt; color:#bfe3c4; font-style:italic;
+  margin:.8mm 0 1mm; }
+.pcard .pcmeta { font-size:7.5pt; color:#e8a; font-weight:600;
+  margin-bottom:1.5mm; }
+.pcard .pctext { font-size:7.2pt; line-height:1.35; }
+.pcard.skip { opacity:.35; }
+@media print { .pcard.skip { display:none; } }
 .grouphd { font-weight:700; font-size:7.2pt; letter-spacing:.5px;
   text-transform:uppercase; color:#bcd; border-top:1px solid #4a7a8c;
   margin:1.6mm 0 1mm; padding-top:1mm; break-after:avoid; }
@@ -1281,10 +1294,12 @@ function fitCards(){
   });
 }
 document.addEventListener('click', function(e){
-  var r = e.target && e.target.closest ? e.target.closest('.card .rules .rule') : null;
-  if(!r) return;
-  r.classList.toggle('skip');
-  fitCards();
+  if(!e.target || !e.target.closest) return;
+  var r = e.target.closest('.card .rules .rule');
+  if(r){ r.classList.toggle('skip'); fitCards(); return; }
+  // Zauber-Spielkarte: ganze Karte vom Druck ausnehmen
+  var c = e.target.closest('.card.pcard');
+  if(c) c.classList.toggle('skip');
 });
 function setPrintMode(on){
   document.querySelectorAll('.rule.skip').forEach(function(el){
@@ -1481,6 +1496,49 @@ def render_spell_reference(lores, doc_title="Zauberkarten") -> str:
 </body></html>"""
 
 
+PCARD_HINT = """<div class="hint">Tipp: Klick auf eine Spielkarte nimmt sie
+vom Druck aus (abgeblendet; nochmal klicken holt sie zur&uuml;ck) &ndash; so
+druckst du nur die Zauber deiner Magier. 9 Karten pro A4-Blatt
+(63,5&nbsp;&times;&nbsp;88,9&nbsp;mm = Standard-Spielkartenformat).</div>"""
+
+
+def render_spell_playing_card(lore_name, s: Spell) -> str:
+    """Ein Zauber als einzelne Spielkarte (Standard-Format 63,5 x 88,9 mm)."""
+    info = " &middot; ".join(filter(None, [
+        f"GW {esc(s.casting)}" if s.casting else "",
+        esc(s.type), esc(s.rng)]))
+    num = (f"<span class='spellnum'>{esc(s.number)}</span> "
+           if s.number else "")
+    return f"""
+    <div class="card back pcard"><div class="fit">
+      <div class="pchead">{num}{esc(s.name)}</div>
+      <div class="pclore">{esc(lore_name)}</div>
+      <div class="pcmeta">{info}</div>
+      <div class="pctext">{hl(s.effect)}</div>
+    </div></div>"""
+
+
+def render_spell_playing_cards(lores, doc_title="Zauber-Spielkarten") -> str:
+    """Alle Zauber als einzelne Spielkarten, 9 pro A4-Blatt (3 x 3).
+    'lores' wie bei render_spell_reference. CLI (--zauber) und Browser."""
+    cards = []
+    for name, spell_list in lores:
+        for s in _lore_spell_objects(spell_list):
+            cards.append(render_spell_playing_card(name, s))
+    pages = ""
+    for i in range(0, len(cards), 9):
+        pages += f'<div class="page pcards">{"".join(cards[i:i + 9])}</div>'
+    return f"""<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8">
+<title>{esc(doc_title)}</title>
+<style>{CSS}</style></head>
+<body>
+{PCARD_HINT}
+{pages}
+<script>{FIT_JS}</script>
+</body></html>"""
+
+
 def fetch_all_magic_lores():
     """CLI-Netzwerkpfad: Index aller Zauberlehren + deren Zauber live von
     tow.whfb.app -> [(Name, Zauberliste)]."""
@@ -1585,7 +1643,11 @@ def main():
         out = os.path.join(outdir, "Zauberkarten.html")
         with open(out, "w", encoding="utf-8") as fh:
             fh.write(render_spell_reference(lores))
-        print(f"Zauberkarten  ->  {out}")
+        print(f"Zauberkarten (je Lehre)  ->  {out}")
+        out = os.path.join(outdir, "Zauber-Spielkarten.html")
+        with open(out, "w", encoding="utf-8") as fh:
+            fh.write(render_spell_playing_cards(lores))
+        print(f"Zauber-Spielkarten       ->  {out}")
         return
     files = collect_lists(args)
     if not files:
